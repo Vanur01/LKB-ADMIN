@@ -133,7 +133,8 @@ const OrderManagement: React.FC = () => {
       firstName = apiOrder.dineInDetails.firstName || "Walk-in";
       lastName = apiOrder.dineInDetails.lastName || "Customer";
       phone = apiOrder.dineInDetails.phone || "";
-      tableOrAddress = apiOrder.dineInDetails.tableNumber || "Table Not Assigned";
+      tableOrAddress =
+        apiOrder.dineInDetails.tableNumber || "Table Not Assigned";
     } else if (apiOrder.deliveryDetails) {
       firstName = apiOrder.deliveryDetails.firstName || "Walk-in";
       lastName = apiOrder.deliveryDetails.lastName || "Customer";
@@ -269,7 +270,6 @@ const OrderManagement: React.FC = () => {
         return "";
     }
   };
-
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -496,9 +496,9 @@ const OrderManagement: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <ShoppingBagIcon className="flex-shrink-0 h-5 w-5 text-indigo-500 mr-2" />
-                            <span className="font-medium text-gray-900">
+                          <span className="font-medium text-gray-900">
                             {order.id}
-                            </span>
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -567,18 +567,6 @@ const OrderManagement: React.FC = () => {
                             <TrashIcon className="h-4 w-4" />
                           </button>
                           {/* Delete Confirmation Modal */}
-                          <ConfirmationModal
-                            isOpen={isDeleteModalOpen}
-                            onClose={() => setIsDeleteModalOpen(false)}
-                            onConfirm={handleConfirmDelete}
-                            title="Delete Order"
-                            message="Are you sure you want to delete this order."
-                            confirmText={
-                              deleteLoading ? "Deleting..." : "Delete"
-                            }
-                            cancelText="Cancel"
-                            type="danger"
-                          />
                         </div>
                       </td>
                     </tr>
@@ -588,6 +576,16 @@ const OrderManagement: React.FC = () => {
             </table>
           </div>
         </div>
+        <ConfirmationModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleConfirmDelete}
+          title="Delete Order"
+          message="Are you sure you want to delete this order."
+          confirmText={deleteLoading ? "Deleting..." : "Delete"}
+          cancelText="Cancel"
+          type="danger"
+        />
 
         {/* Pagination */}
         <Stack spacing={2} className="flex flex-col items-center mt-4">
