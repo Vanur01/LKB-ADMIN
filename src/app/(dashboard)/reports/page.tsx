@@ -3,9 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { ArrowDownTrayIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import { ShoppingBagIcon, CurrencyRupeeIcon, ClockIcon } from "@heroicons/react/24/outline";
-// import ShoppingBagSolid from "@/public/window.svg";
-// import CurrencyRupeeSolid from "@/public/vercel.svg";
-// import ChartBarSolid from "@/public/globe.svg";
+import * as XLSX from 'xlsx';
 
 import {
   ChartBarIcon as ChartBarSolid,
@@ -52,10 +50,59 @@ const ReportsPage = () => {
     setIsRefreshing(false);
   };
 
-  // Export reports data (disabled: implement if needed for API data)
-  const handleExport = () => {
-    // Implement export using dashboard data if needed
-  };
+
+const handleExport = () => {
+  if (!dashboard?.result) {
+    setError('No data to export');
+    return;
+  }
+
+  try {
+    // Create a new workbook
+    const wb = XLSX.utils.book_new();
+
+    // Prepare Dashboard Metrics Sheet
+    const metricsData = [
+      ["Metric", "Value"],
+      ["Total Orders", currentStats?.totalOrders ?? 0],
+      ["Total Revenue", currentStats?.totalRevenue ?? 0],
+      ["Average Order Value", currentStats?.avgOrderValue ?? 0],
+      ["Pending Delivery Orders", currentStats?.pendingDeliveryOrdersCount ?? 0],
+      ["Pending Dine-in Orders", currentStats?.pendingDineInOrdersCount ?? 0],
+    ];
+
+    const metricsSheet = XLSX.utils.aoa_to_sheet(metricsData);
+    XLSX.utils.book_append_sheet(wb, metricsSheet, "Dashboard Metrics");
+
+    // Prepare Recent Orders Sheet (if data exists)
+    if (currentStats?.recentOrders?.length) {
+      const ordersData = [
+        ["Order ID", "Customer", "Type", "Status", "Amount", "Date"],
+        ...currentStats.recentOrders.map((order) => [
+          order._id,
+          order.deliveryDetails
+            ? `${order.deliveryDetails.firstName} ${order.deliveryDetails.lastName}`
+            : `${order.dineInDetails?.firstName} ${order.dineInDetails?.lastName}`,
+          order.orderType,
+          order.status,
+          order.grandTotal,
+          new Date(order.createdAt).toLocaleString(),
+        ]),
+      ];
+
+      const ordersSheet = XLSX.utils.aoa_to_sheet(ordersData);
+      XLSX.utils.book_append_sheet(wb, ordersSheet, "Recent Orders");
+    }
+
+    // Generate Excel file and trigger download
+    const fileName = `Restaurant_Report_${getPeriodLabel(selectedPeriod)}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+
+  } catch (err) {
+    setError('Failed to export data');
+    console.error('Export error:', err);
+  }
+};
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-IN", {

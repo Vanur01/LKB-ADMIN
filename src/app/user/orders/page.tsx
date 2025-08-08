@@ -125,27 +125,39 @@ const OrderManagement: React.FC = () => {
 
   // Transform API response to Order type
   const transformApiResponse = (apiOrder: any): Order => {
-    const address = apiOrder.deliveryDetails
-      ? `${apiOrder.deliveryDetails.hostel}, Room ${apiOrder.deliveryDetails.roomNumber}, Floor ${apiOrder.deliveryDetails.floor}`
-      : "";
-
+    let firstName = "";
+    let lastName = "";
+    let phone = "";
+    let tableOrAddress = "";
+    if (apiOrder.orderType === "dinein" && apiOrder.dineInDetails) {
+      firstName = apiOrder.dineInDetails.firstName || "Walk-in";
+      lastName = apiOrder.dineInDetails.lastName || "Customer";
+      phone = apiOrder.dineInDetails.phone || "";
+      tableOrAddress =
+        apiOrder.dineInDetails.tableNumber || "Table Not Assigned";
+    } else if (apiOrder.deliveryDetails) {
+      firstName = apiOrder.deliveryDetails.firstName || "Walk-in";
+      lastName = apiOrder.deliveryDetails.lastName || "Customer";
+      phone = apiOrder.deliveryDetails.phone || "";
+      tableOrAddress = `${apiOrder.deliveryDetails.hostel}, Room ${apiOrder.deliveryDetails.roomNumber}, Floor ${apiOrder.deliveryDetails.floor}`;
+    }
     return {
       id: apiOrder._id,
-      firstName: apiOrder.deliveryDetails?.firstName || "Walk-in",
-      lastName: apiOrder.deliveryDetails?.lastName || "Customer",
-      phone: apiOrder.deliveryDetails?.phone || "",
+      firstName,
+      lastName,
+      phone,
       type: apiOrder.orderType as "delivery" | "dinein",
-      tableOrAddress: address || "Table Not Assigned",
+      tableOrAddress,
       status: apiOrder.status.toLowerCase(),
       payment: {
-        amount: apiOrder.totalAmount,
+        amount: apiOrder.grandTotal,
         method: "UPI", // Add appropriate method from API
       },
       date: new Date(apiOrder.createdAt).toLocaleString(),
       items: apiOrder.items?.map((item: any) => ({
         id: item._id,
         name: item.name,
-        category: item.category || "Veg", // You might want to update this based on your menu data
+        category: item.category || "Veg",
         quantity: item.quantity,
         price: item.price,
         available: true,
@@ -303,11 +315,11 @@ const OrderManagement: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Search orders by ID, customer, or table/address..."
+              placeholder="Search orders by customers name ..."
             />
           </div>
           <div className="flex gap-2 flex-wrap">
-            <select
+            {/* <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
               className="border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -317,7 +329,7 @@ const OrderManagement: React.FC = () => {
               <option>ready</option>
               <option>delivered</option>
               <option>cancelled</option>
-            </select>
+            </select> */}
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}

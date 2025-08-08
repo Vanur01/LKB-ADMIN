@@ -255,7 +255,6 @@ const OrderManagement: React.FC = () => {
         return null;
     }
   };
-
   const getStatusColor = (status: Order["status"]) => {
     switch (status) {
       case "pending":
