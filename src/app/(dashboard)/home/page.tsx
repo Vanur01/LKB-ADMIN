@@ -22,9 +22,40 @@ import {
 } from "@heroicons/react/24/solid";
 import {
   getRevenueDashboard,
-  RevenueDashboardResult,
-
 } from "@/api/Dashboard/page";
+
+// Define the Category type
+type Category = {
+  _id: string;
+  name: string;
+};
+
+type RevenueDashboardResult = {
+  revenue: {
+    today: number;
+    weekly: number;
+    monthly: number;
+  };
+  topSellingItems: Array<{
+    menuDetails: {
+      _id: string;
+      name: string;
+      description: string;
+      price: number;
+      category: Category;
+      isVeg: boolean;
+      image: string;
+      isAvailable: boolean;
+    };
+    totalQuantity: number;
+    totalRevenue: number;
+  }>;
+  topCategories: Array<{
+    category: Category;
+    total: number;
+  }>;
+  hourlyOrderTrends: number[];
+};
 import { getAllOrders } from "@/api/Order/page";
 
 type OrderItem = {
@@ -355,7 +386,7 @@ const DashboardPage = () => {
                         {item.menuDetails.name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {item.menuDetails.category}
+                        {item.menuDetails.category.name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {item.totalQuantity}
@@ -402,9 +433,9 @@ const DashboardPage = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {dashboardData?.topCategories?.length ? (
                   dashboardData.topCategories.map((cat) => (
-                    <tr key={cat.category}>
+                    <tr key={cat.category._id}>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {cat.category}
+                        {cat.category.name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {formatCurrency(cat.total)}

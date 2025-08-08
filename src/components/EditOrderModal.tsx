@@ -209,7 +209,6 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
         item.quantity
       } - ₹${item.price * item.quantity}\n`;
     });
-    msg += `\nTotal: ₹${order.payment.amount}`;
     return msg;
   };
 
