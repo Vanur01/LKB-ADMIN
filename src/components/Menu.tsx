@@ -3,7 +3,7 @@
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { HomeIcon, ClipboardDocumentCheckIcon, ListBulletIcon, ChartBarIcon, UserGroupIcon } from "@heroicons/react/24/outline";
+import { HomeIcon, ClipboardDocumentCheckIcon, ListBulletIcon, ChartBarIcon, UserGroupIcon,TagIcon } from "@heroicons/react/24/outline";
 
 type MenuProps = {
   collapsed: boolean;
@@ -44,7 +44,7 @@ const adminMenuItems = [
   {
     label: "Category",
     href: "/category",
-    icon: <ChartBarIcon className="w-5 h-5" />,
+    icon: <TagIcon className="w-5 h-5" />,
     color: "from-orange-500 to-orange-600",
   },
   {

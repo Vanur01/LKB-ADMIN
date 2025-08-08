@@ -114,11 +114,12 @@ const MenuManagement = () => {
     ...Array.from(
       new Map(
         menuItems.map(item => {
-          const category = item.category;
-          if (typeof category === 'object' && category !== null) {
+          const category = item.category as Category | string;
+          if (typeof category === 'object' && category !== null && '_id' in category) {
             return [category.name, { id: category._id, name: category.name }];
           }
-          return [category, { id: category, name: category }];
+          const strCategory = category as string;
+          return [strCategory, { id: strCategory, name: strCategory }];
         })
       ).values()
     ).filter(cat => cat.name !== 'All Categories')

@@ -24,10 +24,32 @@ import {
   getRevenueDashboard,
 } from "@/api/Dashboard/page";
 
-// Define the Category type
+// Define the types to match the API response
 type Category = {
   _id: string;
   name: string;
+};
+
+type MenuItem = {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: Category;
+  isVeg: boolean;
+  image: string;
+  isAvailable: boolean;
+};
+
+type TopSellingItem = {
+  menuDetails: MenuItem;
+  totalQuantity: number;
+  totalRevenue: number;
+};
+
+type TopCategory = {
+  category: Category;
+  total: number;
 };
 
 type RevenueDashboardResult = {
@@ -36,24 +58,8 @@ type RevenueDashboardResult = {
     weekly: number;
     monthly: number;
   };
-  topSellingItems: Array<{
-    menuDetails: {
-      _id: string;
-      name: string;
-      description: string;
-      price: number;
-      category: Category;
-      isVeg: boolean;
-      image: string;
-      isAvailable: boolean;
-    };
-    totalQuantity: number;
-    totalRevenue: number;
-  }>;
-  topCategories: Array<{
-    category: Category;
-    total: number;
-  }>;
+  topSellingItems: TopSellingItem[];
+  topCategories: TopCategory[];
   hourlyOrderTrends: number[];
 };
 import { getAllOrders } from "@/api/Order/page";
@@ -99,7 +105,27 @@ const DashboardPage = () => {
     setError(null);
     try {
       const res = await getRevenueDashboard(period);
-      setDashboardData(res.result);
+      const apiData = res.result;
+      
+      // Transform the API response to match our expected type
+      const transformedData: RevenueDashboardResult = {
+        revenue: apiData.revenue,
+        topSellingItems: apiData.topSellingItems.map(item => ({
+          menuDetails: {
+            ...item.menuDetails,
+            category: item.menuDetails.category as unknown as Category
+          },
+          totalQuantity: item.totalQuantity,
+          totalRevenue: item.totalRevenue
+        })),
+        topCategories: apiData.topCategories.map(cat => ({
+          category: cat.category as unknown as Category,
+          total: cat.total
+        })),
+        hourlyOrderTrends: apiData.hourlyOrderTrends
+      };
+      
+      setDashboardData(transformedData);
     } catch (err: any) {
       setError(err.message || "Failed to fetch dashboard data");
     } finally {
