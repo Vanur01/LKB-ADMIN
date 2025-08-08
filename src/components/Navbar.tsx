@@ -65,6 +65,7 @@ const Navbar = () => {
     orders: "Orders Management",
     reports: "Reports",
     users: "User Management",
+    category: "Category Management",
   };
 
   const breadcrumbs = useMemo(() => {

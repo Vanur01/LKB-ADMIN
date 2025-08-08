@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { XMarkIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { addMenuItem, updateMenuItem, MenuItem as ApiMenuItem } from '@/api/Menu/page';
+import { Category, getAllCategories, createCategory } from '@/api/Category/page';
 
 type MenuItem = {
   id: string;
@@ -37,6 +38,7 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
   const [newItem, setNewItem] = useState({
     name: '',
     category: '',
+    categoryId: '',
     price: '',
     description: '',
     dietary: 'Vegetarian' as 'Vegetarian' | 'Non-Vegetarian',
@@ -47,14 +49,15 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
   const [newCategory, setNewCategory] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
-  // Local categories state to allow immediate update
-  const [localCategories, setLocalCategories] = useState<string[]>(existingCategories);
+  const [localCategories, setLocalCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Reset form when modal closes
   const resetForm = () => {
     setNewItem({
       name: '',
       category: '',
+      categoryId: '',
       price: '',
       description: '',
       dietary: 'Vegetarian',
@@ -65,15 +68,36 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
     setImagePreview('');
     setShowAddCategory(false);
     setNewCategory('');
-    setLocalCategories(existingCategories); // Reset local categories to prop
   };
+
+  // Fetch categories when modal opens
+  useEffect(() => {
+    const fetchCategories = async () => {
+      if (isOpen) {
+        setIsLoading(true);
+        try {
+          const response = await getAllCategories(1, 100); // Get up to 100 categories
+          setLocalCategories(response.result.categories);
+        } catch (error) {
+          console.error('Error fetching categories:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    fetchCategories();
+  }, [isOpen]);
 
   // Prefill form when editing
   React.useEffect(() => {
     if (isOpen && isEdit && editItem) {
+      // Find the category object that matches the edit item's category ID
+      const categoryObject = localCategories.find(cat => cat._id === editItem.category);
+      
       setNewItem({
         name: editItem.name || '',
-        category: editItem.category || '',
+        category: categoryObject?.name || '', // Use the category name from the found category
+        categoryId: editItem.category || '', // Use the category ID directly from the API
         price: editItem.price ? String(editItem.price) : '',
         description: editItem.description || '',
         dietary: editItem.isVeg ? 'Vegetarian' : 'Non-Vegetarian',
@@ -82,11 +106,10 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
       });
       setImagePreview(editItem.image || '');
       setImageFile(null);
-      setLocalCategories(existingCategories);
     } else if (isOpen && !isEdit) {
       resetForm();
     }
-  }, [isOpen, isEdit, editItem, existingCategories]);
+  }, [isOpen, isEdit, editItem, localCategories]); // Added localCategories as dependency
 
   // Handle modal close
   const handleClose = () => {
@@ -105,16 +128,28 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
   };
 
   // Handle adding new category
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     const trimmed = newCategory.trim();
     if (trimmed) {
-      // Add to local categories if not already present
-      if (!localCategories.includes(trimmed)) {
-        setLocalCategories(prev => [...prev, trimmed]);
+      try {
+        // Create new category through API
+        const response = await createCategory({
+          name: trimmed,
+          description: `Category for ${trimmed}`
+        });
+        
+        if (response.success) {
+          // Refresh categories list
+          const categoriesResponse = await getAllCategories(1, 100);
+          setLocalCategories(categoriesResponse.result.categories);
+          setNewItem(prev => ({ ...prev, category: trimmed }));
+          setShowAddCategory(false);
+          setNewCategory('');
+        }
+      } catch (error) {
+        console.error('Error adding category:', error);
+        alert('Failed to add category. Please try again.');
       }
-      setNewItem(prev => ({ ...prev, category: trimmed }));
-      setShowAddCategory(false);
-      setNewCategory('');
     }
   };
 
@@ -135,7 +170,7 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
           // If image is updated, use FormData
           const formData = new FormData();
           formData.append('name', newItem.name);
-          formData.append('category', newItem.category);
+          formData.append('category', newItem.categoryId);
           formData.append('description', newItem.description);
           formData.append('price', newItem.price.toString());
           formData.append('isVeg', (newItem.dietary === 'Vegetarian').toString());
@@ -147,7 +182,7 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
           // No image update, send JSON
           const updateData: Partial<ApiMenuItem> = {
             name: newItem.name,
-            category: newItem.category,
+            category: newItem.categoryId,
             description: newItem.description,
             price: Number(newItem.price),
             isVeg: newItem.dietary === 'Vegetarian',
@@ -165,7 +200,7 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
         // Add mode
         const formData = new FormData();
         formData.append('name', newItem.name);
-        formData.append('category', newItem.category);
+        formData.append('category', newItem.categoryId);
         formData.append('description', newItem.description);
         formData.append('price', newItem.price.toString());
         formData.append('isVeg', (newItem.dietary === 'Vegetarian').toString());
@@ -233,13 +268,20 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
                   <select
                     id="category"
                     value={newItem.category}
-                    onChange={(e) => setNewItem(prev => ({ ...prev, category: e.target.value }))}
+                    onChange={(e) => {
+                      const selectedCategory = localCategories.find(cat => cat.name === e.target.value);
+                      setNewItem(prev => ({
+                        ...prev,
+                        category: e.target.value,
+                        categoryId: selectedCategory?._id || ''
+                      }));
+                    }}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     required
                   >
                     <option value="">Select category</option>
                     {localCategories.map(category => (
-                      <option key={category} value={category}>{category}</option>
+                      <option key={category._id} value={category.name}>{category.name}</option>
                     ))}
                     {/* <option value="Pizza">Pizza</option>
                     <option value="Beverages">Beverages</option>
@@ -247,13 +289,7 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
                     <option value="Starter">Starter</option>
                     <option value="Main Course">Main Course</option> */}
                   </select>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddCategory(true)}
-                    className="px-3 py-2 border border-indigo-300 text-indigo-600 rounded-md hover:bg-indigo-50 transition-colors text-sm"
-                  >
-                    + Add New
-                  </button>
+                
                 </div>
               ) : (
                 <div className="flex gap-2">

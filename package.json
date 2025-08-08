@@ -16,6 +16,7 @@
     "@mui/material": "^7.2.0",
     "axios": "^1.10.0",
     "cookies-next": "^6.1.0",
+    "framer-motion": "^12.23.12",
     "next": "15.3.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

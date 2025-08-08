@@ -12,12 +12,27 @@ import {
 import { Pagination, Stack } from '@mui/material';
 import AddMenuItemModal from '@/components/AddMenuItemModal';
 import { fetchMenuItems, toggleMenuItemAvailability, deleteMenuItem, getMenuItemById, type MenuItem } from '@/api/Menu/page';
+
+// Define the Category type
+interface Category {
+  _id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+}
+
+interface CategoryOption {
+  id: string;
+  name: string;
+}
 import ConfirmationModal from '@/components/ConfirmationModal';
 
 const MenuManagement = () => {
   // State for filters
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All Categories');
+  const [selectedCategory, setSelectedCategory] = useState<CategoryOption>({ id: 'all', name: 'All Categories' });
   const [selectedStatus, setSelectedStatus] = useState('All Items');
   const [selectedDietary, setSelectedDietary] = useState('All Dietary');
   const [page, setPage] = useState(1);
@@ -43,7 +58,7 @@ const MenuManagement = () => {
   });
 
   // State for menu items and pagination
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [menuItems, setMenuItems] = useState<(MenuItem & { category: string | Category })[]>([]);
   const [totalItems, setTotalItems] = useState(0);
   const [stats, setStats] = useState({
     vegetarian: 0,
@@ -58,7 +73,9 @@ const MenuManagement = () => {
         setLoading(true);
         // Prepare filters based on selected values
         const filters = {
-          ...(selectedCategory !== 'All Categories' && { category: selectedCategory }),
+          ...(selectedCategory.id !== 'all' && { 
+            category: selectedCategory.id  // Send category ID instead of name
+          }),
           ...(selectedStatus !== 'All Items' && { 
             isAvailable: selectedStatus === 'Available' 
           }),
@@ -91,13 +108,26 @@ const MenuManagement = () => {
   // All filtering is now handled by the API, so we just use menuItems directly
   const filteredItems = menuItems;
 
-  // Get unique categories
-  const categories = Array.from(new Set(menuItems.map(item => item.category)));
+  // Get unique categories with their IDs
+  const categories: CategoryOption[] = [
+    { id: 'all', name: 'All Categories' },
+    ...Array.from(
+      new Map(
+        menuItems.map(item => {
+          const category = item.category;
+          if (typeof category === 'object' && category !== null) {
+            return [category.name, { id: category._id, name: category.name }];
+          }
+          return [category, { id: category, name: category }];
+        })
+      ).values()
+    ).filter(cat => cat.name !== 'All Categories')
+  ];
 
   // Clear all filters
   const clearFilters = () => {
     setSearchTerm('');
-    setSelectedCategory('All Categories');
+    setSelectedCategory({ id: 'all', name: 'All Categories' });
     setSelectedStatus('All Items');
     setSelectedDietary('All Dietary');
   };
@@ -223,13 +253,15 @@ const MenuManagement = () => {
         </div>
         <div className="flex gap-2 flex-wrap">
           <select 
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            value={selectedCategory.id}
+            onChange={(e) => {
+              const selected = categories.find(c => c.id === e.target.value) || categories[0];
+              setSelectedCategory(selected);
+            }}
             className="border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           >
-            <option>All Categories</option>
             {categories.map(category => (
-              <option key={category} value={category}>{category}</option>
+              <option key={category.id} value={category.id}>{category.name}</option>
             ))}
           </select>
           <select 
@@ -317,7 +349,9 @@ const MenuManagement = () => {
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-bold text-gray-800 text-lg">{item.name}</h3>
                         <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600">
-                          {item.category}
+                          {typeof item.category === 'object' && item.category !== null
+                            ? (item.category as Category).name
+                            : item.category}
                         </span>
                         <span className={`px-2 py-1 text-xs rounded-full ${
                           item.isVeg
@@ -418,7 +452,7 @@ const MenuManagement = () => {
           setEditItemData(null);
           fetchMenuItems(page, limit);
         }}
-        existingCategories={categories}
+        existingCategories={categories.map(c => c.name)}
         nextId={(menuItems.length + 1).toString()}
         editItem={editItemData}
         isEdit={!!editItemId}

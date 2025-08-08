@@ -42,6 +42,12 @@ const adminMenuItems = [
     color: "from-orange-500 to-orange-600",
   },
   {
+    label: "Category",
+    href: "/category",
+    icon: <ChartBarIcon className="w-5 h-5" />,
+    color: "from-orange-500 to-orange-600",
+  },
+  {
     label: "User Management",
     href: "/users",
     icon: <UserGroupIcon className="w-5 h-5" />,

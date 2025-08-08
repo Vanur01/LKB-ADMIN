@@ -21,11 +21,21 @@ export default function DashboardLayout({
           collapsed ? "w-20" : "w-64"
         }`}
       >
-        <div className="flex items-center px-4 py-4 justify-center lg:justify-start gap-2 border-b border-zinc-300">
-          <Image src="/images/lkb_Logo.png" alt="logo" width={42} height={42} />
+        <div
+          className="flex items-center px-4 py-4 justify-center lg:justify-start gap-2 border-b border-zinc-300"
+          onClick={() => (window.location.href = "/home")}
+        >
+          <Image
+            src="/images/lkb_Logo.png"
+            alt="logo"
+            width={42}
+            height={42}
+            onClick={() => (window.location.href = "/home")}
+            className="cursor-pointer"
+          />
 
           {!collapsed && (
-            <span className="block font-bold text-zinc-900">
+            <span className="block font-bold text-zinc-900 cursor-pointer">
               LKB Admin
             </span>
           )}

@@ -10,7 +10,6 @@ import {
   ArrowPathIcon,
   UserGroupIcon,
   UserCircleIcon,
-  ShieldCheckIcon,
   KeyIcon,
   UserPlusIcon,
 } from "@heroicons/react/24/outline";
