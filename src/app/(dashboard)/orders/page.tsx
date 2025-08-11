@@ -536,7 +536,7 @@ const OrderManagement: React.FC = () => {
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                             order.type === "dinein"
-                              ? "bg-green-100 text-green-800"
+                              ? "bg-red-100 text-red-800"
                               : "bg-orange-100 text-orange-800"
                           }`}
                         >
