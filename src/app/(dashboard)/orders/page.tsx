@@ -15,6 +15,7 @@ import {
   MagnifyingGlassIcon,
   ChartBarIcon,
   TrashIcon,
+  XCircleIcon,
 } from "@heroicons/react/24/outline";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import OrderDetailsModal from "@/components/OrderDetailsModal";
@@ -27,6 +28,7 @@ type OrderItem = {
   quantity: number;
   price: number;
   available: boolean;
+  
 };
 
 type Order = {
@@ -42,6 +44,7 @@ type Order = {
     amount: number;
     method: "UPI" | "Card" | "Wallet";
   };
+  isPaid: boolean;
   date: string;
   items?: OrderItem[];
 };
@@ -153,6 +156,8 @@ const OrderManagement: React.FC = () => {
         amount: apiOrder.grandTotal,
         method: "UPI", // Add appropriate method from API
       },
+      isPaid: apiOrder.isPaid || false,
+
       date: new Date(apiOrder.createdAt).toLocaleString(),
       items: apiOrder.items?.map((item: any) => ({
         id: item._id,
@@ -270,6 +275,19 @@ const OrderManagement: React.FC = () => {
     }
   };
 
+  // Get payment status icon and styling
+  const getPaymentStatusIcon = (isPaid: boolean) => {
+    return isPaid ? (
+      <CheckCircleIcon className="h-5 w-5 text-green-500" />
+    ) : (
+      <XCircleIcon className="h-5 w-5 text-red-500" />
+    );
+  };
+
+  const getPaymentStatusColor = (isPaid: boolean) => {
+    return isPaid ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800";
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto">
@@ -339,7 +357,7 @@ const OrderManagement: React.FC = () => {
               <option>dine in</option>
               <option>delivery</option>
             </select>
-            <select
+            {/* <select
               value={selectedPayment}
               onChange={(e) => setSelectedPayment(e.target.value)}
               className="border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -347,7 +365,7 @@ const OrderManagement: React.FC = () => {
               <option>All Payments</option>
               <option>Paid</option>
               <option>Unpaid</option>
-            </select>
+            </select> */}
 
             <button
               onClick={clearFilters}
@@ -470,6 +488,12 @@ const OrderManagement: React.FC = () => {
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
+                    Payment
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Date
                   </th>
                   <th
@@ -537,6 +561,18 @@ const OrderManagement: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
                           ₹{order.payment.amount}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          {getPaymentStatusIcon(order.isPaid)}
+                          <span
+                            className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(
+                              order.isPaid
+                            )}`}
+                          >
+                            {order.isPaid ? "Paid" : "Unpaid"}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

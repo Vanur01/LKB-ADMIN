@@ -12,6 +12,7 @@ import {
   UserCircleIcon,
   KeyIcon,
   UserPlusIcon,
+  XCircleIcon,
 } from "@heroicons/react/24/outline";
 import { Pagination, Stack } from "@mui/material";
 import {

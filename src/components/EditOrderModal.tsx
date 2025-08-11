@@ -30,6 +30,8 @@ type Order = {
     amount: number;
     method: "UPI" | "Card" | "Wallet";
   };
+    isPaid: boolean;
+
   date: string;
   items?: OrderItem[];
 };
@@ -39,6 +41,7 @@ import { getOrderById, updateOrder } from "@/api/Order/page";
 type EditOrderProps = {
   orderId: string;
   isOpen: boolean;
+  
   onClose: () => void;
   onSave: (updatedOrder: Order) => void;
 };
@@ -86,9 +89,27 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
           setLoading(false);
           return;
         }
-        const address = apiOrder.deliveryDetails
-          ? `${apiOrder.deliveryDetails.hostel}, Room ${apiOrder.deliveryDetails.roomNumber}, Floor ${apiOrder.deliveryDetails.floor}`
-          : "";
+        
+        // Handle both dineInDetails and deliveryDetails
+        let address = "";
+        let firstName = "Walk-in";
+        let lastName = "Customer";
+        let phone = "";
+        
+        if (apiOrder.orderType === "dinein" && apiOrder.dineInDetails) {
+          address = `Table ${apiOrder.dineInDetails.tableNumber}`;
+          firstName = apiOrder.dineInDetails.firstName || "Walk-in";
+          lastName = apiOrder.dineInDetails.lastName || "Customer";
+          phone = apiOrder.dineInDetails.phone || "";
+        } else if (apiOrder.orderType === "delivery" && apiOrder.deliveryDetails) {
+          address = `${apiOrder.deliveryDetails.hostel}, Room ${apiOrder.deliveryDetails.roomNumber}, Floor ${apiOrder.deliveryDetails.floor}`;
+          firstName = apiOrder.deliveryDetails.firstName || "Walk-in";
+          lastName = apiOrder.deliveryDetails.lastName || "Customer";
+          phone = apiOrder.deliveryDetails.phone || "";
+        } else {
+          address = "Address Not Available";
+        }
+        
         const statusValue = ["pending", "ready", "delivered"].includes(
           apiOrder.status.toLowerCase()
         )
@@ -96,17 +117,19 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
           : "pending";
         const transformedOrder: Order = {
           id: apiOrder._id,
-          firstName: apiOrder.deliveryDetails?.firstName || "Walk-in",
-          lastName: apiOrder.deliveryDetails?.lastName || "Customer",
-          phone: apiOrder.deliveryDetails?.phone || "",
+          firstName: firstName,
+          lastName: lastName,
+          phone: phone,
           email: "",
           type: apiOrder.orderType as "dinein" | "delivery",
-          tableOrAddress: address || "Table Not Assigned",
+          tableOrAddress: address,
           status: statusValue,
           payment: {
             amount: apiOrder.totalAmount,
             method: "UPI",
           },
+                isPaid: apiOrder.isPaid || false,
+
           date: new Date(apiOrder.createdAt).toLocaleString(),
           items: apiOrder.items?.map((item: any) => ({
             id: item._id,
