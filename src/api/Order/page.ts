@@ -36,6 +36,7 @@ export interface OrderResponse {
     page: number;
     totalPages: number;
     data: Array<{
+      dineInDetails: any;
       deliveryDetails?: {
         firstName: string;
         lastName: string;
