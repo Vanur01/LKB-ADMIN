@@ -37,8 +37,8 @@ export interface DashboardOrderItem {
   totalAmount: number;
   orderType: "delivery" | "dinein";
   isPaid: boolean;
-    grandTotal?: number;
-
+  paymentStatus: "SUCCESS" | "PENDING" | "FAILED";
+  grandTotal?: number;
   status: string;
   createdAt: string;
   updatedAt: string;

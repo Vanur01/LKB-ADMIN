@@ -44,6 +44,7 @@ type Order = {
     method: "UPI" | "Card" | "Wallet";
   };
   isPaid: boolean;
+  paymentStatus: "SUCCESS" | "PENDING" | "FAILED";
   date: string;
   items?: OrderItem[];
 };
@@ -155,8 +156,8 @@ const OrderManagement: React.FC = () => {
         amount: apiOrder.grandTotal,
         method: "UPI", // Add appropriate method from API
       },
-                  isPaid: apiOrder.isPaid || false, 
-
+      isPaid: apiOrder.isPaid || false,
+      paymentStatus: (apiOrder as any).paymentStatus || (apiOrder.isPaid ? "SUCCESS" : "PENDING"),
       date: new Date(apiOrder.createdAt).toLocaleString(),
       items: apiOrder.items?.map((item: any) => ({
         id: item._id,
@@ -274,20 +275,32 @@ const OrderManagement: React.FC = () => {
     }
   };
 
-     // Get payment status icon and styling
-    const getPaymentStatusIcon = (isPaid: boolean) => {
-      return isPaid ? (
-        <CheckCircleIcon className="h-5 w-5 text-green-500" />
-      ) : (
-        <XCircleIcon className="h-5 w-5 text-red-500" />
-      );
-    };
-  
-    const getPaymentStatusColor = (isPaid: boolean) => {
-      return isPaid
-        ? "bg-green-100 text-green-800"
-        : "bg-red-100 text-red-800";
-    };
+  // Get payment status icon and styling
+  const getPaymentStatusIcon = (paymentStatus: "SUCCESS" | "PENDING" | "FAILED") => {
+    switch (paymentStatus) {
+      case "SUCCESS":
+        return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
+      case "PENDING":
+        return <ClockIcon className="h-5 w-5 text-yellow-500" />;
+      case "FAILED":
+        return <XCircleIcon className="h-5 w-5 text-red-500" />;
+      default:
+        return <ClockIcon className="h-5 w-5 text-gray-500" />;
+    }
+  };
+
+  const getPaymentStatusColor = (paymentStatus: "SUCCESS" | "PENDING" | "FAILED") => {
+    switch (paymentStatus) {
+      case "SUCCESS":
+        return "bg-green-100 text-green-800";
+      case "PENDING":
+        return "bg-yellow-100 text-yellow-800";
+      case "FAILED":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -508,7 +521,7 @@ const OrderManagement: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center">
+                    <td colSpan={9} className="px-6 py-8 text-center">
                       <p className="text-gray-500">
                         No orders found matching your filters.
                       </p>
@@ -566,13 +579,13 @@ const OrderManagement: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          {getPaymentStatusIcon(order.isPaid)}
+                          {getPaymentStatusIcon(order.paymentStatus)}
                           <span
                             className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(
-                              order.isPaid
+                              order.paymentStatus
                             )}`}
                           >
-                            {order.isPaid ? "Paid" : "Unpaid"}
+                            {order.paymentStatus}
                           </span>
                         </div>
                       </td>

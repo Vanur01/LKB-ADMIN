@@ -85,8 +85,8 @@ export const getAllOrders = async (
       params: { 
         page, 
         limit,
-        isPaid: true, // Always filter for paid orders only
         ...(filters?.search && { search: filters.search }),
+        ...(filters?.isPaid !== undefined && { isPaid: filters.isPaid }),
         ...(filters?.orderType && { orderType: filters.orderType })
        },
       headers: {

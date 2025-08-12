@@ -30,8 +30,8 @@ type Order = {
     amount: number;
     method: "UPI" | "Card" | "Wallet";
   };
-    isPaid: boolean;
-
+  isPaid: boolean;
+  paymentStatus: "SUCCESS" | "PENDING" | "FAILED";
   date: string;
   items?: OrderItem[];
 };
@@ -128,8 +128,8 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
             amount: apiOrder.totalAmount,
             method: "UPI",
           },
-                isPaid: apiOrder.isPaid || false,
-
+          isPaid: apiOrder.isPaid || false,
+          paymentStatus: (apiOrder as any).paymentStatus || (apiOrder.isPaid ? "SUCCESS" : "PENDING"),
           date: new Date(apiOrder.createdAt).toLocaleString(),
           items: apiOrder.items?.map((item: any) => ({
             id: item._id,

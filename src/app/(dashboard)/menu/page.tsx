@@ -11,7 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { Pagination, Stack } from '@mui/material';
 import AddMenuItemModal from '@/components/AddMenuItemModal';
-import { fetchMenuItems, toggleMenuItemAvailability, deleteMenuItem, getMenuItemById, type MenuItem } from '@/api/Menu/page';
+import { fetchMenuItems, fetchCategories, toggleMenuItemAvailability, deleteMenuItem, getMenuItemById, type MenuItem, type Category as ApiCategory } from '@/api/Menu/page';
 
 // Define the Category type
 interface Category {
@@ -38,6 +38,11 @@ const MenuManagement = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(30);
   const [loading, setLoading] = useState(false);
+  
+  // State for categories
+  const [apiCategories, setApiCategories] = useState<ApiCategory[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
   
   // State for add/edit item modal
   const [showAddModal, setShowAddModal] = useState(false);
@@ -66,6 +71,27 @@ const MenuManagement = () => {
     unavailable: 0
   });
 
+  // Fetch categories from API
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        setCategoriesError(null);
+        const response = await fetchCategories(1, 90);
+        if (response.success) {
+          setApiCategories(response.result.categories);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        setCategoriesError(error instanceof Error ? error.message : 'Failed to load categories');
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    loadCategories();
+  }, []);
+
   // Fetch menu items
   useEffect(() => {
     const loadMenuItems = async () => {
@@ -74,7 +100,7 @@ const MenuManagement = () => {
         // Prepare filters based on selected values
         const filters = {
           ...(selectedCategory.id !== 'all' && { 
-            category: selectedCategory.id  // Send category ID instead of name
+            categoryName: selectedCategory.name  // Use categoryName instead of category ID
           }),
           ...(selectedStatus !== 'All Items' && { 
             isAvailable: selectedStatus === 'Available' 
@@ -108,21 +134,13 @@ const MenuManagement = () => {
   // All filtering is now handled by the API, so we just use menuItems directly
   const filteredItems = menuItems;
 
-  // Get unique categories with their IDs
+  // Use API categories instead of extracting from menu items
   const categories: CategoryOption[] = [
     { id: 'all', name: 'All Categories' },
-    ...Array.from(
-      new Map(
-        menuItems.map(item => {
-          const category = item.category as Category | string;
-          if (typeof category === 'object' && category !== null && '_id' in category) {
-            return [category.name, { id: category._id, name: category.name }];
-          }
-          const strCategory = category as string;
-          return [strCategory, { id: strCategory, name: strCategory }];
-        })
-      ).values()
-    ).filter(cat => cat.name !== 'All Categories')
+    ...apiCategories.map(category => ({
+      id: category._id,
+      name: category.name
+    }))
   ];
 
   // Clear all filters
@@ -259,11 +277,18 @@ const MenuManagement = () => {
               const selected = categories.find(c => c.id === e.target.value) || categories[0];
               setSelectedCategory(selected);
             }}
-            className="border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            disabled={categoriesLoading}
+            className="border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {categories.map(category => (
-              <option key={category.id} value={category.id}>{category.name}</option>
-            ))}
+            {categoriesLoading ? (
+              <option value="all">Loading categories...</option>
+            ) : categoriesError ? (
+              <option value="all">Error loading categories</option>
+            ) : (
+              categories.map(category => (
+                <option key={category.id} value={category.id}>{category.name}</option>
+              ))
+            )}
           </select>
           <select 
             value={selectedStatus}

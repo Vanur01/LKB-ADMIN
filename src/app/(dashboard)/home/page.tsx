@@ -13,6 +13,7 @@ import {
   TrashIcon,
   EyeIcon,
   ArrowPathIcon,
+  XCircleIcon,
 } from "@heroicons/react/24/outline";
 import {
   CurrencyRupeeIcon as CurrencyRupeeSolid,
@@ -83,6 +84,7 @@ type Order = {
     amount: number;
     method: "UPI" | "Card" | "Wallet";
   };
+  paymentStatus: "SUCCESS" | "PENDING" | "FAILED";
   items?: OrderItem[];
   date: string;
   time: string;
@@ -168,6 +170,7 @@ const DashboardPage = () => {
         amount: apiOrder.grandTotal || apiOrder.totalAmount,
         method: "UPI", // Default to UPI since actual method is not in API
       },
+      paymentStatus: (apiOrder as any).paymentStatus || (apiOrder.isPaid ? "SUCCESS" : "PENDING"),
       items: apiOrder.items || [],
       date: new Date(apiOrder.createdAt).toLocaleDateString(),
       time: new Date(apiOrder.createdAt).toLocaleTimeString(),
@@ -250,6 +253,33 @@ const DashboardPage = () => {
         return "bg-red-100 text-red-800";
       default:
         return "";
+    }
+  };
+
+  // Payment status functions
+  const getPaymentStatusIcon = (paymentStatus: "SUCCESS" | "PENDING" | "FAILED") => {
+    switch (paymentStatus) {
+      case "SUCCESS":
+        return <CheckCircleIcon className="h-4 w-4 text-green-500" />;
+      case "PENDING":
+        return <ClockIcon className="h-4 w-4 text-yellow-500" />;
+      case "FAILED":
+        return <XCircleIcon className="h-4 w-4 text-red-500" />;
+      default:
+        return <ClockIcon className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const getPaymentStatusColor = (paymentStatus: "SUCCESS" | "PENDING" | "FAILED") => {
+    switch (paymentStatus) {
+      case "SUCCESS":
+        return "bg-green-100 text-green-800";
+      case "PENDING":
+        return "bg-yellow-100 text-yellow-800";
+      case "FAILED":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -537,6 +567,9 @@ const DashboardPage = () => {
                         Status
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Payment
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Amount
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -548,7 +581,7 @@ const DashboardPage = () => {
                     {ordersLoading ? (
                       <tr>
                         <td
-                          colSpan={7}
+                          colSpan={8}
                           className="px-6 py-4 text-center text-gray-400"
                         >
                           Loading...
@@ -557,7 +590,7 @@ const DashboardPage = () => {
                     ) : ordersError ? (
                       <tr>
                         <td
-                          colSpan={7}
+                          colSpan={8}
                           className="px-6 py-4 text-center text-red-400"
                         >
                           {ordersError}
@@ -566,7 +599,7 @@ const DashboardPage = () => {
                     ) : recentOrders.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={7}
+                          colSpan={8}
                           className="px-6 py-4 text-center text-gray-400"
                         >
                           No recent orders
@@ -610,6 +643,18 @@ const DashboardPage = () => {
                             >
                               {order.status}
                             </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              {getPaymentStatusIcon(order.paymentStatus)}
+                              <span
+                                className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(
+                                  order.paymentStatus
+                                )}`}
+                              >
+                                {order.paymentStatus}
+                              </span>
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {formatCurrency(order.grandTotal)}

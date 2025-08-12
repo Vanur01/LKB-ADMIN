@@ -2,7 +2,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { ArrowDownTrayIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
-import { ShoppingBagIcon, CurrencyRupeeIcon, ClockIcon } from "@heroicons/react/24/outline";
+import { ShoppingBagIcon, CurrencyRupeeIcon, ClockIcon, CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/outline";
 import * as XLSX from 'xlsx';
 
 import {
@@ -77,7 +77,7 @@ const handleExport = () => {
     // Prepare Recent Orders Sheet (if data exists)
     if (currentStats?.recentOrders?.length) {
       const ordersData = [
-        ["Order ID", "Customer", "Type", "Status", "Amount", "Date"],
+        ["Order ID", "Customer", "Type", "Status", "Payment Status", "Amount", "Date"],
         ...currentStats.recentOrders.map((order) => [
           order._id,
           order.deliveryDetails
@@ -85,6 +85,7 @@ const handleExport = () => {
             : `${order.dineInDetails?.firstName} ${order.dineInDetails?.lastName}`,
           order.orderType,
           order.status,
+          (order as any).paymentStatus || (order.isPaid ? "SUCCESS" : "PENDING"),
           order.grandTotal,
           new Date(order.createdAt).toLocaleString(),
         ]),
@@ -122,6 +123,33 @@ const handleExport = () => {
         return "This Month";
       default:
         return "Today";
+    }
+  };
+
+  // Payment status functions
+  const getPaymentStatusIcon = (paymentStatus: "SUCCESS" | "PENDING" | "FAILED") => {
+    switch (paymentStatus) {
+      case "SUCCESS":
+        return <CheckCircleIcon className="h-4 w-4 text-green-500" />;
+      case "PENDING":
+        return <ClockIcon className="h-4 w-4 text-yellow-500" />;
+      case "FAILED":
+        return <XCircleIcon className="h-4 w-4 text-red-500" />;
+      default:
+        return <ClockIcon className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const getPaymentStatusColor = (paymentStatus: "SUCCESS" | "PENDING" | "FAILED") => {
+    switch (paymentStatus) {
+      case "SUCCESS":
+        return "bg-green-100 text-green-800";
+      case "PENDING":
+        return "bg-yellow-100 text-yellow-800";
+      case "FAILED":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -275,17 +303,18 @@ const handleExport = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
-                <tr><td colSpan={6} className="px-6 py-4 text-center text-gray-400">Loading...</td></tr>
+                <tr><td colSpan={7} className="px-6 py-4 text-center text-gray-400">Loading...</td></tr>
               ) : error ? (
-                <tr><td colSpan={6} className="px-6 py-4 text-center text-red-400">{error}</td></tr>
+                <tr><td colSpan={7} className="px-6 py-4 text-center text-red-400">{error}</td></tr>
               ) : !currentStats?.recentOrders?.length ? (
-                <tr><td colSpan={6} className="px-6 py-4 text-center text-gray-400">No recent orders</td></tr>
+                <tr><td colSpan={7} className="px-6 py-4 text-center text-gray-400">No recent orders</td></tr>
               ) : (
                 currentStats.recentOrders.map((order) => (
                   <tr key={order._id}>
@@ -307,6 +336,18 @@ const handleExport = () => {
                       }`}>
                       {order.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        {getPaymentStatusIcon((order as any).paymentStatus || (order.isPaid ? "SUCCESS" : "PENDING"))}
+                        <span
+                          className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(
+                            (order as any).paymentStatus || (order.isPaid ? "SUCCESS" : "PENDING")
+                          )}`}
+                        >
+                          {(order as any).paymentStatus || (order.isPaid ? "SUCCESS" : "PENDING")}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-green-700 font-bold">{(order.grandTotal)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-500">{new Date(order.createdAt).toLocaleString()}</td>

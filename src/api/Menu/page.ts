@@ -23,6 +23,15 @@ export interface MenuItem {
   isAvailable: boolean;
 }
 
+export interface Category {
+  _id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+  __v: number;
+}
+
 // Adjusted to match backend response structure
 export interface MenuResponse {
   success: boolean;
@@ -36,6 +45,19 @@ export interface MenuResponse {
       nonVegetarian: number;
       unavailable: number;
     };
+  };
+}
+
+export interface CategoryResponse {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  result: {
+    total: number;
+    page: number;
+    pages: number;
+    limit: number;
+    categories: Category[];
   };
 }
 
@@ -92,11 +114,38 @@ export const addMenuItem = async (formData: FormData): Promise<MenuResponse> => 
   }
 };
 
+export const fetchCategories = async (page: number = 1, limit: number = 90): Promise<CategoryResponse> => {
+  try {
+    const authHeader = getAuthorizationHeader();
+    const response = await axios.get(`${API_BASE_URL}/category/getAllCategory`, {
+      params: {
+        page,
+        limit,
+      },
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(
+        error.response?.data?.message ||
+          "An error occurred while fetching categories"
+      );
+    } else {
+      throw new Error("An unknown error occurred while fetching categories");
+    }
+  }
+};
+
 export const fetchMenuItems = async (
   page: number, 
   limit: number,
   filters?: {
     category?: string,
+    categoryName?: string,
     isAvailable?: boolean,
     isVeg?: boolean,
     search?: string
@@ -109,6 +158,7 @@ export const fetchMenuItems = async (
         page, 
         limit,
         ...(filters?.category && { category: filters.category }),
+        ...(filters?.categoryName && { categoryName: filters.categoryName }),
         ...(filters?.isAvailable !== undefined && { isAvailable: filters.isAvailable }),
         ...(filters?.isVeg !== undefined && { isVeg: filters.isVeg }),
         ...(filters?.search && { search: filters.search })
