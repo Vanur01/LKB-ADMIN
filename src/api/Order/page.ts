@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "https://api.orderfood.coffee/api/v1";
+const API_BASE_URL = "http://localhost:9001/api/v1";
 
 // Helper function to get token and check auth
 const getAuthorizationHeader = (): string => {

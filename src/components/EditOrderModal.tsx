@@ -251,10 +251,63 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
     setShowShareModal(false);
   };
 
+  // Print only this modal content
+  const handlePrint = () => {
+    if (typeof window === "undefined") return;
+    const content = document.getElementById("printable-modal");
+    if (!content) return;
+
+    const printWindow = window.open("", "", "width=900,height=700");
+    if (!printWindow) return;
+
+    const styleTags = Array.from(
+      document.querySelectorAll('link[rel="stylesheet"], style')
+    )
+      .map((el) => (el as HTMLLinkElement | HTMLStyleElement).outerHTML)
+      .join("");
+
+    printWindow.document.open();
+    printWindow.document.write(
+      `<!doctype html><html><head><title>Print</title>${styleTags}<style>
+        @media print { .no-print { display: none !important; } }
+        html, body { background: #fff; }
+      </style></head><body>${content.innerHTML}</body></html>`
+    );
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
+  };
+
+  // Download modal content as a standalone HTML file
+  const handleDownload = () => {
+    const content = document.getElementById("printable-modal");
+    if (!content) return;
+    const styleTags = Array.from(
+      document.querySelectorAll('link[rel="stylesheet"], style')
+    )
+      .map((el) => (el as HTMLLinkElement | HTMLStyleElement).outerHTML)
+      .join("");
+    const html = `<!doctype html><html><head><meta charset="utf-8"/>${styleTags}<style>
+      @media print { .no-print { display: none !important; } }
+      html, body { background: #fff; }
+    </style></head><body>${content.innerHTML}</body></html>`;
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `order-${order?.id || 'details'}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <>
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+        <div id="printable-modal" className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-orange-600 to-orange-500 p-4 flex items-center justify-between">
             <div>
@@ -264,7 +317,7 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="text-white/80 hover:text-white transition-colors hover:bg-white/10 rounded-full p-1 cursor-pointer"
+              className="text-white/80 hover:text-white transition-colors hover:bg-white/10 rounded-full p-1 cursor-pointer no-print"
             >
               <XMarkIcon className="h-6 w-6" />
             </button>
@@ -348,12 +401,24 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
+          <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50 no-print">
             <button
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
             >
               Cancel
+            </button>
+            <button
+              onClick={handlePrint}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
+            >
+              Print
+            </button>
+            <button
+              onClick={handleDownload}
+              className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 transition-colors cursor-pointer"
+            >
+              Download
             </button>
             <button
               onClick={handleSave}
