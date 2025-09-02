@@ -49,7 +49,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   const handleConfirm = () => {
     onConfirm();
     onClose();
-    window.location.reload();
+    // window.location.reload();
 
   };
 
