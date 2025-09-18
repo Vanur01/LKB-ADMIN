@@ -35,13 +35,26 @@ export interface DashboardOrderItem {
     _id: string;
   }>;
   totalAmount: number;
+  deliveryCharges?: number;
+  grandTotal: number;
   orderType: "delivery" | "dinein";
+  deliveryBoy?: {
+    _id: string;
+    name: string;
+    phone: string;
+    email: string;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
   isPaid: boolean;
-  paymentStatus: "SUCCESS" | "PENDING" | "FAILED";
-  grandTotal?: number;
+  paymentStatus: "SUCCESS" | "PENDING" | "FAILED" | "COMPLETED";
   status: string;
   createdAt: string;
   updatedAt: string;
+  orderId: string;
+  paymentUrl?: string;
+  transactionId?: string;
 }
 
 export interface OrderDashboardResponse {
@@ -52,17 +65,15 @@ export interface OrderDashboardResponse {
     totalOrders: number;
     totalRevenue: number;
     avgOrderValue: string;
-      grandTotal?: number;
-
-    pendingDeliveryOrdersCount: number;
-    pendingDineInOrdersCount: number;
+    completedDeliveryOrdersCount: number;
+    completedDineInOrdersCount: number;
     recentOrders: DashboardOrderItem[];
-    pendingDeliveryOrders: DashboardOrderItem[];
-    pendingDineInOrders: DashboardOrderItem[];
+    completedDeliveryOrders: DashboardOrderItem[];
+    completedDineInOrders: DashboardOrderItem[];
   };
 }
 
-export const getOrderDashboard = async (range: "daily" | "weekly" | "monthly" = "weekly"): Promise<OrderDashboardResponse> => {
+export const getOrderDashboard = async (range: "today" | "weekly" | "monthly" = "today"): Promise<OrderDashboardResponse> => {
   try {
     const authHeader = getAuthorizationHeader();
     const response = await axios.get(`${API_BASE_URL}/dashboard/getOrderDashBoard`, {

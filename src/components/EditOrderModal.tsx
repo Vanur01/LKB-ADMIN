@@ -25,7 +25,9 @@ type Order = {
   email?: string;
   type: "dinein" | "delivery";
   tableOrAddress: string;
-  status: "pending" | "ready" | "delivered";
+  status: "pending" | "ready" | "completed" | "cancel";
+  deliveryBoyId?: string;
+  deliveryBoyName?: string;
   payment: {
     amount: number;
     method: "UPI" | "Card" | "Wallet";
@@ -37,6 +39,7 @@ type Order = {
 };
 
 import { getOrderById, updateOrder } from "@/api/Order/page";
+import { getAllDeliveryBoys, DeliveryBoy } from "@/api/DeliveryBoy/page";
 
 type EditOrderProps = {
   orderId: string;
@@ -59,6 +62,22 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [deliveryBoys, setDeliveryBoys] = useState<DeliveryBoy[]>([]);
+  const [selectedDeliveryBoyId, setSelectedDeliveryBoyId] = useState<string>("");
+
+  // Fetch delivery boys when modal opens
+  React.useEffect(() => {
+    const fetchDeliveryBoys = async () => {
+      if (!isOpen) return;
+      try {
+        const response = await getAllDeliveryBoys(1, 100); // Get all active delivery boys
+        setDeliveryBoys(response.result.data);
+      } catch (err) {
+        console.error("Failed to fetch delivery boys:", err);
+      }
+    };
+    fetchDeliveryBoys();
+  }, [isOpen]);
 
   React.useEffect(() => {
     const fetchOrder = async () => {
@@ -110,10 +129,10 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
           address = "Address Not Available";
         }
         
-        const statusValue = ["pending", "ready", "delivered"].includes(
+        const statusValue = ["pending", "ready", "completed", "cancel"].includes(
           apiOrder.status.toLowerCase()
         )
-          ? (apiOrder.status.toLowerCase() as "pending" | "ready" | "delivered")
+          ? (apiOrder.status.toLowerCase() as "pending" | "ready" | "completed" | "cancel")
           : "pending";
         const transformedOrder: Order = {
           id: apiOrder._id,
@@ -124,6 +143,8 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
           type: apiOrder.orderType as "dinein" | "delivery",
           tableOrAddress: address,
           status: statusValue,
+          deliveryBoyId: (apiOrder as any).deliveryBoy || "", // Extract delivery boy ID
+          deliveryBoyName: (apiOrder as any).deliveryBoyName || "",
           payment: {
             amount: apiOrder.totalAmount,
             method: "UPI",
@@ -143,6 +164,7 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
         setOrder(transformedOrder);
         setStatus(transformedOrder.status);
         setTableOrAddress(transformedOrder.tableOrAddress);
+        setSelectedDeliveryBoyId((apiOrder as any).deliveryBoy || ""); // Set the delivery boy ID from API
         setItems(transformedOrder.items || []);
       } catch (err) {
         setError("Failed to load order details");
@@ -158,17 +180,29 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
     setLoading(true);
     setError(null);
     try {
+      const selectedDeliveryBoy = deliveryBoys.find(boy => boy._id === selectedDeliveryBoyId);
       const updatedOrder = {
         ...order,
         status,
         tableOrAddress,
+        deliveryBoyId: selectedDeliveryBoyId,
+        deliveryBoyName: selectedDeliveryBoy?.name || "",
       };
-      await updateOrder(order.id, {
+      
+      // Prepare update payload
+      const updatePayload: any = {
         status,
-        ...(order.type === "dinein"
-          ? { tableNumber: tableOrAddress }
-          : { deliveryAddress: tableOrAddress }),
-      });
+        email: selectedDeliveryBoy?.email || "",
+      };
+      
+      // Add address field based on order type
+      if (order.type === "dinein") {
+        updatePayload.tableNumber = tableOrAddress;
+      } else {
+        updatePayload.deliveryAddress = tableOrAddress;
+      }
+      
+      await updateOrder(order.id, updatePayload);
       onSave(updatedOrder);
       onClose();
       window.location.reload();
@@ -185,8 +219,10 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
         return <ClockIcon className="h-4 w-4 text-amber-500" />;
       case "ready":
         return <CheckCircleIcon className="h-4 w-4 text-emerald-500" />;
-      case "delivered":
+      case "completed":
         return <TruckIcon className="h-4 w-4 text-blue-500" />;
+      case "cancel":
+        return <XMarkIcon className="h-4 w-4 text-red-500" />;
       default:
         return null;
     }
@@ -225,7 +261,7 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
     msg += `${order.type === "dinein" ? "Table Number" : "Delivery Address"}: ${
       order.tableOrAddress
     }\n`;
-    msg += `Status: ${order.status}\n`;
+    msg += `Status: ${order.status === "completed" ? "Out of Delivery" : order.status}\n`;
     msg += `\nItems:\n`;
     order.items?.forEach((item, idx) => {
       msg += `${idx + 1}. ${item.name} (${item.category}) x${
@@ -337,10 +373,39 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
               >
                 <option value="pending">Pending</option>
                 <option value="ready">Ready</option>
-                <option value="delivered">Delivered</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="completed">Out of Delivery</option>
+                <option value="cancel">Cancel</option>
               </select>
             </div>
+
+            {/* Delivery Boy Selection - Only for delivery orders */}
+            {order?.type === "delivery" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Assign Delivery Boy
+                </label>
+                <select
+                  value={selectedDeliveryBoyId}
+                  onChange={(e) => setSelectedDeliveryBoyId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
+                >
+                  <option value="">Select Delivery Boy</option>
+                  {deliveryBoys
+                    .filter(boy => boy.status === "active")
+                    .map((boy) => (
+                      <option key={boy._id} value={boy._id}>
+                        {boy.name} - {boy.phone}
+                      </option>
+                    ))}
+                </select>
+                {selectedDeliveryBoyId && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    <span className="font-medium">Selected:</span>{" "}
+                    {deliveryBoys.find(boy => boy._id === selectedDeliveryBoyId)?.name || "Loading..."}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Table Number / Address Section */}
             <div>

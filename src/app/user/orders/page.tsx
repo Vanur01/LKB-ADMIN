@@ -28,17 +28,19 @@ type OrderItem = {
   quantity: number;
   price: number;
   available: boolean;
+  
 };
 
 type Order = {
   id: string;
+  orderId?: string; // Add orderId field
   firstName: string;
   lastName: string;
   phone?: string;
   email?: string;
   type: "dinein" | "delivery";
   tableOrAddress: string;
-  status: "pending" | "ready" | "delivered" | "cancelled";
+  status: "pending" | "ready" | "completed" | "cancel";
   payment: {
     amount: number;
     method: "UPI" | "Card" | "Wallet";
@@ -103,17 +105,19 @@ const OrderManagement: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 30;
-  const [statusCounts, setStatusCounts] = useState({
-    totalOrder: 0,
-    pending: 0,
-    ready: 0,
-    delivered: 0,
+  const [ordersSummary, setOrdersSummary] = useState({
+    totalOrders: 0,
+    totalOrderValue: 0,
+    cancelledOrders: 0,
   });
+  
+  // State for active filter
+  const [activeFilter, setActiveFilter] = useState<'all' | 'cancel'>('all');
 
   // Fetch orders on component mount or when filters/page changes
   useEffect(() => {
     handleRefresh();
-  }, [searchTerm, selectedStatus, selectedType, selectedPayment, currentPage]); // Refetch when filters or page changes
+  }, [searchTerm, selectedStatus, selectedType, selectedPayment, currentPage, activeFilter]); // Refetch when filters or page changes
 
   // All filtering is now handled by the API
   const filteredOrders = orders;
@@ -128,36 +132,50 @@ const OrderManagement: React.FC = () => {
 
   // Transform API response to Order type
   const transformApiResponse = (apiOrder: any): Order => {
-    let firstName = "";
-    let lastName = "";
+    let firstName = "Walk-in";
+    let lastName = "Customer";
     let phone = "";
     let tableOrAddress = "";
+    
+    // Handle dine-in details
     if (apiOrder.orderType === "dinein" && apiOrder.dineInDetails) {
       firstName = apiOrder.dineInDetails.firstName || "Walk-in";
       lastName = apiOrder.dineInDetails.lastName || "Customer";
       phone = apiOrder.dineInDetails.phone || "";
-      tableOrAddress =
-        apiOrder.dineInDetails.tableNumber || "Table Not Assigned";
-    } else if (apiOrder.deliveryDetails) {
+      tableOrAddress = apiOrder.dineInDetails.tableNumber || "Table Not Assigned";
+    }
+    // Handle delivery details  
+    else if (apiOrder.orderType === "delivery" && apiOrder.deliveryDetails) {
       firstName = apiOrder.deliveryDetails.firstName || "Walk-in";
       lastName = apiOrder.deliveryDetails.lastName || "Customer";
       phone = apiOrder.deliveryDetails.phone || "";
       tableOrAddress = `${apiOrder.deliveryDetails.hostel}, Room ${apiOrder.deliveryDetails.roomNumber}, Floor ${apiOrder.deliveryDetails.floor}`;
     }
+    // Fallback for orders without detailed customer info
+    else {
+      if (apiOrder.orderType === "dinein") {
+        tableOrAddress = "Table Not Assigned";
+      } else {
+        tableOrAddress = "Address Not Available";
+      }
+    }
+    
     return {
       id: apiOrder._id,
+      orderId: apiOrder.orderId, // Store the readable order ID
       firstName,
       lastName,
       phone,
       type: apiOrder.orderType as "delivery" | "dinein",
       tableOrAddress,
-      status: apiOrder.status.toLowerCase(),
+      status: apiOrder.status.toLowerCase() as "pending" | "ready" | "completed" | "cancel",
       payment: {
         amount: apiOrder.grandTotal,
         method: "UPI", // Add appropriate method from API
       },
       isPaid: apiOrder.isPaid || false,
-      paymentStatus: (apiOrder as any).paymentStatus || (apiOrder.isPaid ? "SUCCESS" : "PENDING"),
+      paymentStatus: apiOrder.paymentStatus === "COMPLETED" ? "SUCCESS" : 
+                     apiOrder.paymentStatus === "PENDING" ? "PENDING" : "FAILED",
       date: new Date(apiOrder.createdAt).toLocaleString(),
       items: apiOrder.items?.map((item: any) => ({
         id: item._id,
@@ -188,14 +206,26 @@ const OrderManagement: React.FC = () => {
         ...(selectedStatus !== "All Status" && {
           status: selectedStatus.toLowerCase(),
         }),
+        ...(activeFilter === 'cancel' && { status: 'cancel' }),
       };
 
       const response = await getAllOrders(currentPage, itemsPerPage, filters);
-      // Access the data array inside the result object
+      
+      console.log('API Response:', response);
+      console.log('Active Filter:', activeFilter);
+      console.log('Filters sent:', filters);
+      
+      // Use the main data array for both all and filtered orders
+      // The API will return filtered data based on the status parameter
       const orderItems = response.result.data || [];
+      
+      console.log('Order items before transform:', orderItems);
+      
       setOrders(orderItems.map(transformApiResponse));
-      // Update status counts from API
-      setStatusCounts(response.result.statusCounts);
+      
+      // Update summary from API
+      setOrdersSummary(response.result.summary);
+      
       // Update pagination
       setTotalPages(response.result.totalPages);
       setLastRefresh(new Date());
@@ -240,21 +270,26 @@ const OrderManagement: React.FC = () => {
     // For demo purposes, we'll just log the updated order
   };
 
-  // Use status counts from API
-  const totalOrders = statusCounts.totalOrder;
-  const pendingCount = statusCounts.pending;
-  const readyCount = statusCounts.ready;
-  const deliveredCount = statusCounts.delivered;
+  // Handle stats card clicks
+  const handleTotalOrdersClick = () => {
+    setActiveFilter('all');
+    setCurrentPage(1);
+  };
 
- const getStatusIcon = (status: Order["status"]) => {
+  const handleCancelledOrdersClick = () => {
+    setActiveFilter('cancel');
+    setCurrentPage(1);
+  };
+
+  const getStatusIcon = (status: Order["status"]) => {
     switch (status) {
       case "pending":
         return <ClockIcon className="h-5 w-5 text-yellow-500" />;
       case "ready":
         return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
-      case "delivered":
+      case "completed":
         return <TruckIcon className="h-5 w-5 text-blue-500" />;
-      case "cancelled":
+      case "cancel":
         return <TrashIcon className="h-5 w-5 text-red-500" />;
       default:
         return null;
@@ -266,9 +301,9 @@ const OrderManagement: React.FC = () => {
         return "bg-yellow-100 text-yellow-800";
       case "ready":
         return "bg-green-100 text-green-800";
-      case "delivered":
+      case "completed":
         return "bg-blue-100 text-blue-800";
-      case "cancelled":
+      case "cancel":
         return "bg-red-100 text-red-800";
       default:
         return "";
@@ -347,21 +382,11 @@ const OrderManagement: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Search orders by customers name ..."
+              placeholder="Search orders customer name..."
             />
           </div>
           <div className="flex gap-2 flex-wrap">
-            {/* <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option>All Status</option>
-              <option>pending</option>
-              <option>ready</option>
-              <option>delivered</option>
-              <option>cancelled</option>
-            </select> */}
+
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
@@ -371,15 +396,6 @@ const OrderManagement: React.FC = () => {
               <option>dine in</option>
               <option>delivery</option>
             </select>
-            {/* <select
-              value={selectedPayment}
-              onChange={(e) => setSelectedPayment(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option>All Payments</option>
-              <option>Paid</option>
-              <option>Unpaid</option>
-            </select> */}
 
             <button
               onClick={clearFilters}
@@ -392,69 +408,102 @@ const OrderManagement: React.FC = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl border-2 border-gray-200 ">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {/* Total Orders Card - Clickable */}
+          <button
+            onClick={handleTotalOrdersClick}
+            className={`bg-white p-6 rounded-xl border-2 hover:shadow-lg transition-all duration-200 text-left ${
+              activeFilter === 'all' ? 'border-blue-500 shadow-lg' : 'border-gray-200'
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-gray-500 text-sm font-medium">
                   Total Orders
                 </h3>
                 <p className="text-2xl font-bold text-gray-800">
-                  {totalOrders}
+                  {ordersSummary.totalOrders}
                 </p>
               </div>
               <div className="bg-blue-100 p-3 rounded-lg">
                 <ChartBarIcon className="h-6 w-6 text-blue-600" />
               </div>
             </div>
-          </div>
-          <div className="bg-white p-6 rounded-xl border-2 border-gray-200 ">
+            {activeFilter === 'all' && (
+              <div className="mt-2 text-xs text-blue-600 font-medium">
+                Currently viewing all orders
+              </div>
+            )}
+          </button>
+
+
+          {/* Cancelled Orders Card - Clickable */}
+          <button
+            onClick={handleCancelledOrdersClick}
+            className={`bg-white p-6 rounded-xl border-2 hover:shadow-lg transition-all duration-200 text-left ${
+              activeFilter === 'cancel' ? 'border-red-500 shadow-lg' : 'border-gray-200'
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-gray-500 text-sm font-medium">Pending</h3>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {pendingCount}
+                <h3 className="text-gray-500 text-sm font-medium">
+                  Cancelled Orders
+                </h3>
+                <p className="text-2xl font-bold text-red-600">
+                  {ordersSummary.cancelledOrders}
                 </p>
               </div>
-              <div className="bg-yellow-100 p-3 rounded-lg">
-                <ClockIcon className="h-6 w-6 text-yellow-600" />
+              <div className="bg-red-100 p-3 rounded-lg">
+                <XCircleIcon className="h-6 w-6 text-red-600" />
               </div>
             </div>
-          </div>
-          <div className="bg-white p-6 rounded-xl  border-2 border-gray-200 ">
+            {activeFilter === 'cancel' && (
+              <div className="mt-2 text-xs text-red-600 font-medium">
+                Currently viewing cancelled orders
+              </div>
+            )}
+          </button>
+
+          {/* Total Order Value Card */}
+          <div className="bg-white p-6 rounded-xl border-2 border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-gray-500 text-sm font-medium">Ready</h3>
+                <h3 className="text-gray-500 text-sm font-medium">
+                  Total Order Value
+                </h3>
                 <p className="text-2xl font-bold text-green-600">
-                  {readyCount}
+                  ₹{ordersSummary.totalOrderValue}
                 </p>
               </div>
               <div className="bg-green-100 p-3 rounded-lg">
-                <CheckCircleIcon className="h-6 w-6 text-green-600" />
+                <ShoppingBagIcon className="h-6 w-6 text-green-600" />
               </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-xl  border-2 border-gray-200 ">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-gray-500 text-sm font-medium">Delivered</h3>
-                <p className="text-2xl font-bold text-blue-600">
-                  {deliveredCount}
-                </p>
-              </div>
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <TruckIcon className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
+
         </div>
 
         <div className="bg-white rounded-lg border-2 border-zinc-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-medium text-gray-900">
-                Orders ({filteredOrders.length})
-              </h2>
+              <div>
+                <h2 className="text-lg font-medium text-gray-900">
+                  {activeFilter === 'cancel' ? 'Cancelled Orders' : 'All Orders'} ({filteredOrders.length})
+                </h2>
+                {activeFilter === 'cancel' && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Showing only cancelled orders
+                  </p>
+                )}
+              </div>
+              {activeFilter === 'cancel' && (
+                <button
+                  onClick={handleTotalOrdersClick}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium cursor-pointer"
+                >
+                  View All Orders
+                </button>
+              )}
             </div>
           </div>
 
@@ -498,7 +547,7 @@ const OrderManagement: React.FC = () => {
                   >
                     Amount
                   </th>
-                    <th
+                  <th
                     scope="col"
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
@@ -521,7 +570,7 @@ const OrderManagement: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-8 text-center">
+                    <td colSpan={8} className="px-6 py-8 text-center">
                       <p className="text-gray-500">
                         No orders found matching your filters.
                       </p>
@@ -533,9 +582,9 @@ const OrderManagement: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <ShoppingBagIcon className="flex-shrink-0 h-5 w-5 text-indigo-500 mr-2" />
-                            <span className="font-medium text-gray-900">
-                            {order.id}
-                            </span>
+                          <span className="font-medium text-gray-900">
+                            {order.orderId || order.id}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -568,7 +617,7 @@ const OrderManagement: React.FC = () => {
                               order.status
                             )}`}
                           >
-                            {order.status}
+                            {order.status === "completed" ? "Out of Delivery" : order.status}
                           </span>
                         </div>
                       </td>
@@ -608,20 +657,6 @@ const OrderManagement: React.FC = () => {
                           >
                             <PencilSquareIcon className="h-4 w-4" />
                           </button>
- 
-                          {/* Delete Confirmation Modal */}
-                          <ConfirmationModal
-                            isOpen={isDeleteModalOpen}
-                            onClose={() => setIsDeleteModalOpen(false)}
-                            onConfirm={handleConfirmDelete}
-                            title="Delete Order"
-                            message="Are you sure you want to delete this order."
-                            confirmText={
-                              deleteLoading ? "Deleting..." : "Delete"
-                            }
-                            cancelText="Cancel"
-                            type="danger"
-                          />
                         </div>
                       </td>
                     </tr>
@@ -631,6 +666,16 @@ const OrderManagement: React.FC = () => {
             </table>
           </div>
         </div>
+        <ConfirmationModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleConfirmDelete}
+          title="Delete Order"
+          message="Are you sure you want to delete this order."
+          confirmText={deleteLoading ? "Deleting..." : "Delete"}
+          cancelText="Cancel"
+          type="danger"
+        />
 
         {/* Pagination */}
         <Stack spacing={2} className="flex flex-col items-center mt-4">

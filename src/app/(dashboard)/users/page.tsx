@@ -284,7 +284,7 @@ const UserManagement = () => {
               setPage(1);
             }}
             className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md bg-white placeholder-gray-500 focus:outline-none focus:ring focus:ring-orange-500 focus:border-orange-500"
-            placeholder="Search users by name or email..."
+            placeholder="Search users by name..."
           />
         </div>
       </div>

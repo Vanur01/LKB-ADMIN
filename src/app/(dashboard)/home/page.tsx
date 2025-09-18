@@ -188,10 +188,7 @@ const DashboardPage = () => {
         const orderItems = response.result.data;
         setRecentOrders(orderItems.map(transformApiResponse));
         
-        // Log status counts if available
-        if (response.result.statusCounts) {
-          console.log("Order status counts:", response.result.statusCounts);
-        }
+
       } else {
         setOrdersError("Failed to fetch orders: " + (response.message || "Unknown error"));
       }

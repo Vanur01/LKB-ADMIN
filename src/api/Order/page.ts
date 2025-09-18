@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "https://api.orderfood.coffee/api/v1";
+const API_BASE_URL = "https://api.orderfood.coffee/api/v1"; 
 
 // Helper function to get token and check auth
 const getAuthorizationHeader = (): string => {
@@ -35,8 +35,18 @@ export interface OrderResponse {
   result: {
     page: number;
     totalPages: number;
+    summary: {
+      totalOrders: number;
+      totalOrderValue: number;
+      cancelledOrders: number;
+    };
     data: Array<{
-      dineInDetails: any;
+      dineInDetails?: {
+        firstName: string;
+        lastName: string;
+        tableNumber: string;
+        phone: string;
+      };
       deliveryDetails?: {
         firstName: string;
         lastName: string;
@@ -54,19 +64,54 @@ export interface OrderResponse {
         _id: string;
       }>;
       totalAmount: number;
-      grandTotal?: number;
+      deliveryCharges: number;
+      grandTotal: number;
       orderType: "delivery" | "dinein";
       isPaid: boolean;
-      status: string;
+      paymentStatus: "PENDING" | "COMPLETED" | "FAILED";
+      status: "pending" | "ready" | "delivered" | "cancel";
       createdAt: string;
       updatedAt: string;
+      orderId: string;
+      paymentUrl?: string;
+      transactionId?: string;
     }>;
-    statusCounts: {
-      totalOrder: number;
-      pending: number;
-      ready: number;
-      delivered: number;
-    };
+    cancelledOrders: Array<{
+      dineInDetails?: {
+        firstName: string;
+        lastName: string;
+        tableNumber: string;
+        phone: string;
+      };
+      deliveryDetails?: {
+        firstName: string;
+        lastName: string;
+        hostel: string;
+        roomNumber: string;
+        floor: string;
+        phone: string;
+      };
+      _id: string;
+      items: Array<{
+        menuId: string;
+        name: string;
+        quantity: number;
+        price: number;
+        _id: string;
+      }>;
+      totalAmount: number;
+      deliveryCharges: number;
+      grandTotal: number;
+      orderType: "delivery" | "dinein";
+      isPaid: boolean;
+      paymentStatus: "PENDING" | "COMPLETED" | "FAILED";
+      status: "cancel";
+      createdAt: string;
+      updatedAt: string;
+      orderId: string;
+      paymentUrl?: string;
+      transactionId?: string;
+    }>;
   };
 }
 
@@ -76,7 +121,8 @@ export const getAllOrders = async (
   filters?: {
     search?: string,
     isPaid?: boolean,
-    orderType?: 'delivery' | 'dinein'
+    orderType?: 'delivery' | 'dinein',
+    status?: string
   }
 ): Promise<OrderResponse> => {
   try {
@@ -87,7 +133,8 @@ export const getAllOrders = async (
         limit,
         ...(filters?.search && { search: filters.search }),
         ...(filters?.isPaid !== undefined && { isPaid: filters.isPaid }),
-        ...(filters?.orderType && { orderType: filters.orderType })
+        ...(filters?.orderType && { orderType: filters.orderType }),
+        ...(filters?.status && { status: filters.status })
        },
       headers: {
         'Authorization': authHeader,

@@ -3,7 +3,16 @@
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { HomeIcon, ClipboardDocumentCheckIcon, ListBulletIcon, ChartBarIcon, UserGroupIcon,TagIcon } from "@heroicons/react/24/outline";
+import {
+  HomeIcon,
+  ClipboardDocumentCheckIcon,
+  ListBulletIcon,
+  ChartBarIcon,
+  UserGroupIcon,
+  TagIcon,
+  TruckIcon,
+  GiftIcon,
+} from "@heroicons/react/24/outline";
 
 type MenuProps = {
   collapsed: boolean;
@@ -48,6 +57,18 @@ const adminMenuItems = [
     color: "from-orange-500 to-orange-600",
   },
   {
+    label: "Offers & Banners",
+    href: "/offers",
+    icon: <GiftIcon className="w-5 h-5" />,
+    color: "from-orange-500 to-orange-600",
+  },
+  {
+    label: "Delivery Boys",
+    href: "/delivery-boys",
+    icon: <TruckIcon className="w-5 h-5" />,
+    color: "from-orange-500 to-orange-600",
+  },
+  {
     label: "User Management",
     href: "/users",
     icon: <UserGroupIcon className="w-5 h-5" />,
@@ -67,11 +88,11 @@ const userMenuItems = [
 const Menu = ({ collapsed }: MenuProps) => {
   const pathname = usePathname();
   const [userRole, setUserRole] = useState<"admin" | "user">("user"); // Default to 'user'
-  
+
   useEffect(() => {
     // Get user data from localStorage
-    if (typeof window !== 'undefined') {
-      const userData = localStorage.getItem('user');
+    if (typeof window !== "undefined") {
+      const userData = localStorage.getItem("user");
       if (userData) {
         try {
           const parsedUser: UserData = JSON.parse(userData);
