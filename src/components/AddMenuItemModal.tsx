@@ -40,6 +40,7 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
     category: '',
     categoryId: '',
     price: '',
+    packagingCost: '',
     description: '',
     dietary: 'Vegetarian' as 'Vegetarian' | 'Non-Vegetarian',
     image: '',
@@ -59,6 +60,7 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
       category: '',
       categoryId: '',
       price: '',
+      packagingCost: '',
       description: '',
       dietary: 'Vegetarian',
       image: '',
@@ -99,6 +101,7 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
         category: categoryObject?.name || '', // Use the category name from the found category
         categoryId: editItem.category || '', // Use the category ID directly from the API
         price: editItem.price ? String(editItem.price) : '',
+        packagingCost: editItem.packagingCost ? String(editItem.packagingCost) : '',
         description: editItem.description || '',
         dietary: editItem.isVeg ? 'Vegetarian' : 'Non-Vegetarian',
         image: editItem.image || '',
@@ -173,6 +176,9 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
           formData.append('category', newItem.categoryId);
           formData.append('description', newItem.description);
           formData.append('price', newItem.price.toString());
+          if (newItem.packagingCost) {
+            formData.append('packagingCost', newItem.packagingCost.toString());
+          }
           formData.append('isVeg', (newItem.dietary === 'Vegetarian').toString());
           formData.append('isAvailable', String(newItem.isAvailable));
           formData.append('menuImage', imageFile);
@@ -188,6 +194,10 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
             isVeg: newItem.dietary === 'Vegetarian',
             isAvailable: newItem.isAvailable,
           };
+          
+          if (newItem.packagingCost) {
+            updateData.packagingCost = Number(newItem.packagingCost);
+          }
           response = await updateMenuItem(editItem._id, updateData);
         }
         if (response.success) {
@@ -203,6 +213,9 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
         formData.append('category', newItem.categoryId);
         formData.append('description', newItem.description);
         formData.append('price', newItem.price.toString());
+        if (newItem.packagingCost) {
+          formData.append('packagingCost', newItem.packagingCost.toString());
+        }
         formData.append('isVeg', (newItem.dietary === 'Vegetarian').toString());
         formData.append('isAvailable', 'true');
         if (imageFile) {
@@ -338,6 +351,24 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
                 step="0.01"
                 required
               />
+            </div>
+
+            {/* Packaging Cost */}
+            <div>
+              <label htmlFor="packagingCost" className="block text-sm font-medium text-gray-700 mb-1">
+                Packaging Cost (₹)
+              </label>
+              <input
+                type="number"
+                id="packagingCost"
+                value={newItem.packagingCost}
+                onChange={(e) => setNewItem(prev => ({ ...prev, packagingCost: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Enter packaging cost"
+                min="0"
+                step="0.01"
+              />
+              <p className="text-xs text-gray-500 mt-1">Additional packaging cost will be added to the final price</p>
             </div>
 
             {/* Description */}

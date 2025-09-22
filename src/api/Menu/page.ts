@@ -21,6 +21,7 @@ export interface MenuItem {
   isVeg: boolean;
   image: string;
   isAvailable: boolean;
+  packagingCost?: number;
 }
 
 export interface Category {

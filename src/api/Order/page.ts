@@ -28,6 +28,45 @@ export interface OrderItem {
   orderDate: string;
 }
 
+export interface OrderData {
+  dineInDetails?: {
+    firstName: string;
+    lastName: string;
+    tableNumber: string;
+    phone: string;
+  };
+  deliveryDetails?: {
+    firstName: string;
+    lastName: string;
+    hostel: string;
+    roomNumber: string;
+    floor: string;
+    phone: string;
+  };
+  _id: string;
+  items: Array<{
+    menuId: string;
+    name: string;
+    quantity: number;
+    price: number;
+    _id: string;
+  }>;
+  totalAmount: number;
+  deliveryCharges: number;
+  grandTotal: number;
+  orderType: "delivery" | "dinein";
+  deliveryBoy: any;
+  isPaid: boolean;
+  paymentStatus: "PENDING" | "COMPLETED" | "FAILED" | "SUCCESS";
+  status: "pending" | "ready" | "delivered" | "cancel" | "completed";
+  createdAt: string;
+  updatedAt: string;
+  orderId: string;
+  paymentUrl?: string;
+  transactionId?: string;
+  __v?: number;
+}
+
 export interface OrderResponse {
   success: boolean;
   statusCode: number;
@@ -36,82 +75,14 @@ export interface OrderResponse {
     page: number;
     totalPages: number;
     summary: {
-      totalOrders: number;
+      totalCompleted: number;
+      totalPending: number;
       totalOrderValue: number;
       cancelledOrders: number;
     };
-    data: Array<{
-      dineInDetails?: {
-        firstName: string;
-        lastName: string;
-        tableNumber: string;
-        phone: string;
-      };
-      deliveryDetails?: {
-        firstName: string;
-        lastName: string;
-        hostel: string;
-        roomNumber: string;
-        floor: string;
-        phone: string;
-      };
-      _id: string;
-      items: Array<{
-        menuId: string;
-        name: string;
-        quantity: number;
-        price: number;
-        _id: string;
-      }>;
-      totalAmount: number;
-      deliveryCharges: number;
-      grandTotal: number;
-      orderType: "delivery" | "dinein";
-      isPaid: boolean;
-      paymentStatus: "PENDING" | "COMPLETED" | "FAILED";
-      status: "pending" | "ready" | "delivered" | "cancel";
-      createdAt: string;
-      updatedAt: string;
-      orderId: string;
-      paymentUrl?: string;
-      transactionId?: string;
-    }>;
-    cancelledOrders: Array<{
-      dineInDetails?: {
-        firstName: string;
-        lastName: string;
-        tableNumber: string;
-        phone: string;
-      };
-      deliveryDetails?: {
-        firstName: string;
-        lastName: string;
-        hostel: string;
-        roomNumber: string;
-        floor: string;
-        phone: string;
-      };
-      _id: string;
-      items: Array<{
-        menuId: string;
-        name: string;
-        quantity: number;
-        price: number;
-        _id: string;
-      }>;
-      totalAmount: number;
-      deliveryCharges: number;
-      grandTotal: number;
-      orderType: "delivery" | "dinein";
-      isPaid: boolean;
-      paymentStatus: "PENDING" | "COMPLETED" | "FAILED";
-      status: "cancel";
-      createdAt: string;
-      updatedAt: string;
-      orderId: string;
-      paymentUrl?: string;
-      transactionId?: string;
-    }>;
+    completedOrders: OrderData[];
+    pendingOrders: OrderData[];
+    cancelledOrders: OrderData[];
   };
 }
 

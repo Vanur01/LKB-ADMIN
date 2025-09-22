@@ -83,6 +83,12 @@ const userMenuItems = [
     icon: <ClipboardDocumentCheckIcon className="w-5 h-5" />,
     color: "from-orange-500 to-orange-600",
   },
+    {
+    label: "Reports",
+    href: "/user/reports",
+    icon: <ChartBarIcon className="w-5 h-5" />,
+    color: "from-orange-500 to-orange-600",
+  },
 ];
 
 const Menu = ({ collapsed }: MenuProps) => {
