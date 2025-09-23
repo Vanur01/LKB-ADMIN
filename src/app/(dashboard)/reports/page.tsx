@@ -27,12 +27,18 @@ const ReportsPage = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("today");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  
+  // Custom date range state
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const [isCustomDateValid, setIsCustomDateValid] = useState(false);
 
-  const fetchDashboard = async (period: string) => {
+  const fetchDashboard = async (period: string, customRange?: { startDate?: string; endDate?: string }) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await getOrderDashboard(period as any);
+      const res = await getOrderDashboard(period as any, customRange);
       setDashboard(res);
     } catch (err: any) {
       setError(err.message || "Failed to fetch dashboard report");
@@ -42,18 +48,68 @@ const ReportsPage = () => {
   };
 
   useEffect(() => {
-    fetchDashboard(selectedPeriod);
+    if (selectedPeriod === "custom") {
+      if (isCustomDateValid) {
+        fetchDashboard(selectedPeriod, { startDate, endDate });
+      }
+    } else {
+      fetchDashboard(selectedPeriod);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPeriod]);
+  }, [selectedPeriod, isCustomDateValid]);
 
   const currentStats = dashboard?.result;
 
   // Refresh orders data
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchDashboard(selectedPeriod);
+    if (selectedPeriod === "custom" && isCustomDateValid) {
+      await fetchDashboard(selectedPeriod, { startDate, endDate });
+    } else if (selectedPeriod !== "custom") {
+      await fetchDashboard(selectedPeriod);
+    }
     setLastRefresh(new Date());
     setIsRefreshing(false);
+  };
+
+  // Handle period change
+  const handlePeriodChange = (period: string) => {
+    setSelectedPeriod(period);
+    if (period === "custom") {
+      setShowDatePicker(true);
+    } else {
+      setShowDatePicker(false);
+      setStartDate("");
+      setEndDate("");
+      setIsCustomDateValid(false);
+    }
+  };
+
+  // Validate custom date range
+  useEffect(() => {
+    if (selectedPeriod === "custom") {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const isValid = Boolean(startDate && endDate && start <= end && start <= new Date());
+      setIsCustomDateValid(isValid);
+    }
+  }, [startDate, endDate, selectedPeriod]);
+
+  // Apply custom date range
+  const applyCustomDateRange = () => {
+    if (isCustomDateValid) {
+      fetchDashboard("custom", { startDate, endDate });
+    }
+  };
+
+  // Clear filters and reset to today
+  const clearFilters = () => {
+    setSelectedPeriod("today");
+    setShowDatePicker(false);
+    setStartDate("");
+    setEndDate("");
+    setIsCustomDateValid(false);
+    fetchDashboard("today");
   };
 
   const handleExport = () => {
@@ -331,6 +387,21 @@ const ReportsPage = () => {
         return "This Week";
       case "monthly":
         return "This Month";
+      case "custom":
+        if (startDate && endDate) {
+          const start = new Date(startDate).toLocaleDateString('en-IN', { 
+            day: 'numeric', 
+            month: 'short', 
+            year: 'numeric' 
+          });
+          const end = new Date(endDate).toLocaleDateString('en-IN', { 
+            day: 'numeric', 
+            month: 'short', 
+            year: 'numeric' 
+          });
+          return `${start} - ${end}`;
+        }
+        return "Custom Range";
       default:
         return "Today";
     }
@@ -414,20 +485,103 @@ const ReportsPage = () => {
 
       {/* Period Selector */}
       <div className="mb-6">
-        <div className="flex items-center space-x-1 bg-white p-1 rounded-lg border border-gray-200 w-fit">
-          {["today", "weekly", "monthly"].map((period) => (
-            <button
-              key={period}
-              onClick={() => setSelectedPeriod(period)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                selectedPeriod === period
-                  ? "bg-orange-600 text-white border-2 border-orange-700"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-              }`}
-            >
-              {getPeriodLabel(period)}
-            </button>
-          ))}
+        <div className="flex flex-col space-y-4">
+          {/* Main Period Buttons */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-1 bg-white p-1 rounded-lg border border-gray-200 w-fit">
+              {["today", "weekly", "monthly", "custom"].map((period) => (
+                <button
+                  key={period}
+                  onClick={() => handlePeriodChange(period)}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    selectedPeriod === period
+                      ? "bg-orange-600 text-white border-2 border-orange-700"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  }`}
+                >
+                  {period === "custom" ? "Custom Range" : getPeriodLabel(period)}
+                </button>
+              ))}
+            </div>
+
+            {/* Clear Filter Button */}
+            {(selectedPeriod === "custom" || selectedPeriod !== "today") && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center space-x-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                <XCircleIcon className="h-4 w-4" />
+                <span>Clear Filters</span>
+              </button>
+            )}
+          </div>
+
+          {/* Custom Date Range Picker */}
+          {showDatePicker && selectedPeriod === "custom" && (
+            <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+              <div className="flex flex-col space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-gray-900">Select Date Range</h3>
+                  <button
+                    onClick={clearFilters}
+                    className="text-xs text-gray-500 hover:text-gray-700 underline"
+                  >
+                    Reset to Today
+                  </button>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="flex flex-col">
+                    <label className="text-xs text-gray-500 mb-1">Start Date</label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      max={new Date().toISOString().split('T')[0]}
+                      className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <label className="text-xs text-gray-500 mb-1">End Date</label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      min={startDate}
+                      max={new Date().toISOString().split('T')[0]}
+                      className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    />
+                  </div>
+                  <div className="flex items-end space-x-2">
+                    <button
+                      onClick={applyCustomDateRange}
+                      disabled={!isCustomDateValid}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                        isCustomDateValid
+                          ? "bg-orange-600 text-white hover:bg-orange-700"
+                          : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      }`}
+                    >
+                      Apply
+                    </button>
+                    <button
+                      onClick={() => {
+                        setStartDate("");
+                        setEndDate("");
+                      }}
+                      className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-md text-sm font-medium transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+                {!isCustomDateValid && (startDate || endDate) && (
+                  <p className="text-xs text-red-500">
+                    Please select valid start and end dates. End date should be after start date and not in the future.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

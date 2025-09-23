@@ -73,11 +73,27 @@ export interface OrderDashboardResponse {
   };
 }
 
-export const getOrderDashboard = async (range: "today" | "weekly" | "monthly" = "today"): Promise<OrderDashboardResponse> => {
+export const getOrderDashboard = async (
+  range: "today" | "weekly" | "monthly" | "custom" = "today",
+  customRange?: { startDate?: string; endDate?: string }
+): Promise<OrderDashboardResponse> => {
   try {
     const authHeader = getAuthorizationHeader();
+    
+    let params: any = { range };
+    
+    // Add custom date range parameters if provided
+    if (range === "custom" && customRange) {
+      if (customRange.startDate) {
+        params.startDate = customRange.startDate;
+      }
+      if (customRange.endDate) {
+        params.endDate = customRange.endDate;
+      }
+    }
+    
     const response = await axios.get(`${API_BASE_URL}/dashboard/getOrderDashBoard`, {
-      params: { range },
+      params,
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json'
