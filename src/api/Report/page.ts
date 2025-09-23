@@ -73,6 +73,7 @@ export interface OrderDashboardResponse {
   };
 }
 
+
 export const getOrderDashboard = async (
   range: "today" | "weekly" | "monthly" | "custom" = "today",
   customRange?: { startDate?: string; endDate?: string }
@@ -99,6 +100,7 @@ export const getOrderDashboard = async (
         'Content-Type': 'application/json'
       }
     });
+    
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
