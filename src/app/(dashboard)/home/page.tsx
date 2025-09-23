@@ -75,6 +75,7 @@ type OrderItem = {
 
 type Order = {
   id: string;
+  orderId: string;
   customer: string;
   type: "dinein" | "delivery";
   tableOrAddress: string;
@@ -159,18 +160,31 @@ const DashboardPage = () => {
         ? `${apiOrder.dineInDetails.firstName} ${apiOrder.dineInDetails.lastName}`
         : "Unknown Customer";
 
+    // Map status from API to our expected format
+    let status: Order["status"] = "pending";
+    if (apiOrder.status === "cancel" || apiOrder.status === "cancelled") {
+      status = "cancelled";
+    } else if (apiOrder.status === "completed") {
+      status = "delivered";
+    } else if (apiOrder.status === "ready") {
+      status = "ready";
+    } else {
+      status = "pending";
+    }
+
     return {
       id: apiOrder._id,
+      orderId: apiOrder.orderId,
       customer: customer,
       type: apiOrder.orderType as "delivery" | "dinein",
       tableOrAddress: address,
       grandTotal: apiOrder.grandTotal || apiOrder.totalAmount,
-      status: apiOrder.status.toLowerCase(),
+      status: status,
       payment: {
         amount: apiOrder.grandTotal || apiOrder.totalAmount,
         method: "UPI", // Default to UPI since actual method is not in API
       },
-      paymentStatus: (apiOrder as any).paymentStatus || (apiOrder.isPaid ? "SUCCESS" : "PENDING"),
+      paymentStatus: apiOrder.paymentStatus || (apiOrder.isPaid ? "SUCCESS" : "PENDING"),
       items: apiOrder.items || [],
       date: new Date(apiOrder.createdAt).toLocaleDateString(),
       time: new Date(apiOrder.createdAt).toLocaleTimeString(),
@@ -184,11 +198,21 @@ const DashboardPage = () => {
       // Get 5 most recent orders with no additional filters
       const response = await getAllOrders(1, 5); 
       
-      if (response.success && response.result && response.result.data) {
-        const orderItems = response.result.data;
-        setRecentOrders(orderItems.map(transformApiResponse));
+      if (response.success && response.result) {
+        // Combine all orders from the different arrays and sort by creation date
+        const allOrders = [
+          ...(response.result.completedOrders || []),
+          ...(response.result.pendingOrders || []),
+          ...(response.result.cancelledOrders || [])
+        ];
         
-
+        // Sort by creation date (most recent first) and take only 5
+        const sortedOrders = allOrders
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 5);
+        
+        setRecentOrders(sortedOrders.map(transformApiResponse));
+        console.log("Recent Orders Data:", sortedOrders);
       } else {
         setOrdersError("Failed to fetch orders: " + (response.message || "Unknown error"));
       }
@@ -232,7 +256,7 @@ const DashboardPage = () => {
       case "delivered":
         return <TruckIcon className="h-4 w-4 text-blue-500" />;
       case "cancelled":
-        return <TrashIcon className="h-4 w-4 text-red-500" />;
+        return <XCircleIcon className="h-4 w-4 text-red-500" />;
       default:
         return null;
     }
@@ -606,7 +630,7 @@ const DashboardPage = () => {
                       recentOrders.map((order) => (
                         <tr key={order.id}>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {order.id.substring(0, 8)}...
+                            {order.orderId}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             {order.customer}

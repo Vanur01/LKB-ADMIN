@@ -83,6 +83,7 @@ export interface OrderResponse {
     completedOrders: OrderData[];
     pendingOrders: OrderData[];
     cancelledOrders: OrderData[];
+    data?: OrderData[]; // Add this for backward compatibility
   };
 }
 
@@ -194,6 +195,68 @@ export const deleteOrder = async (id: string): Promise<OrderResponse> => {
       );
     } else {
       throw new Error("An unknown error occurred while deleting order");
+    }
+  }
+};
+
+export interface DeliverySettingsResponse {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  result: {
+    _id: string;
+    isDeliveryEnabled: boolean;
+    __v: number;
+  };
+}
+
+export const toggleDeliveryStatus = async (enable: boolean): Promise<DeliverySettingsResponse> => {
+  try {
+    const authHeader = getAuthorizationHeader();
+    const response = await axios.post(
+      `${API_BASE_URL}/order/settings/delivery`,
+      { enable },
+      {
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(
+        error.response?.data?.message ||
+          "An error occurred while updating delivery settings"
+      );
+    } else {
+      throw new Error("An unknown error occurred while updating delivery settings");
+    }
+  }
+};
+
+export const getDeliveryStatus = async (): Promise<DeliverySettingsResponse> => {
+  try {
+    const authHeader = getAuthorizationHeader();
+    const response = await axios.get(
+      `${API_BASE_URL}/order/getDeliverySettings`,
+      {
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(
+        error.response?.data?.message ||
+          "An error occurred while fetching delivery settings"
+      );
+    } else {
+      throw new Error("An unknown error occurred while fetching delivery settings");
     }
   }
 };

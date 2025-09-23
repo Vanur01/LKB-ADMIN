@@ -12,6 +12,7 @@ import {
   TagIcon,
   TruckIcon,
   GiftIcon,
+  Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
 
 type MenuProps = {
@@ -66,6 +67,12 @@ const adminMenuItems = [
     label: "Delivery Boys",
     href: "/delivery-boys",
     icon: <TruckIcon className="w-5 h-5" />,
+    color: "from-orange-500 to-orange-600",
+  },
+  {
+    label: "Delivery Settings",
+    href: "/delivery-settings",
+    icon: <Cog6ToothIcon className="w-5 h-5" />,
     color: "from-orange-500 to-orange-600",
   },
   {
