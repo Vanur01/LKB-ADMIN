@@ -452,8 +452,7 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
               </div>
             </div>
 
-            {/* Share Button for Ready Status */}
-            {status === "ready" && (
+            
               <div className="flex justify-end pt-2">
                 <button
                   onClick={handleShare}
@@ -462,7 +461,7 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
                   Share Order Details
                 </button>
               </div>
-            )}
+          
           </div>
 
           {/* Footer */}
