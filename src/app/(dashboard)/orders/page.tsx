@@ -28,7 +28,6 @@ type OrderItem = {
   quantity: number;
   price: number;
   available: boolean;
-  
 };
 
 type Order = {
@@ -118,14 +117,23 @@ const OrderManagement: React.FC = () => {
     totalOrderValue: 0,
     cancelledOrders: 0,
   });
-  
+
   // State for active filter
-  const [activeFilter, setActiveFilter] = useState<'completed' | 'pending' | 'cancel'>('completed');
+  const [activeFilter, setActiveFilter] = useState<
+    "completed" | "pending" | "cancel"
+  >("completed");
 
   // Fetch orders on component mount or when filters/page changes
   useEffect(() => {
     handleRefresh();
-  }, [searchTerm, selectedStatus, selectedType, selectedPayment, currentPage, activeFilter]); // Refetch when filters or page changes
+  }, [
+    searchTerm,
+    selectedStatus,
+    selectedType,
+    selectedPayment,
+    currentPage,
+    activeFilter,
+  ]); // Refetch when filters or page changes
 
   // All filtering is now handled by the API
   const filteredOrders = orders;
@@ -144,15 +152,16 @@ const OrderManagement: React.FC = () => {
     let lastName = "Customer";
     let phone = "";
     let tableOrAddress = "";
-    
+
     // Handle dine-in details
     if (apiOrder.orderType === "dinein" && apiOrder.dineInDetails) {
       firstName = apiOrder.dineInDetails.firstName || "Walk-in";
       lastName = apiOrder.dineInDetails.lastName || "Customer";
       phone = apiOrder.dineInDetails.phone || "";
-      tableOrAddress = apiOrder.dineInDetails.tableNumber || "Table Not Assigned";
+      tableOrAddress =
+        apiOrder.dineInDetails.tableNumber || "Table Not Assigned";
     }
-    // Handle delivery details  
+    // Handle delivery details
     else if (apiOrder.orderType === "delivery" && apiOrder.deliveryDetails) {
       firstName = apiOrder.deliveryDetails.firstName || "Walk-in";
       lastName = apiOrder.deliveryDetails.lastName || "Customer";
@@ -167,7 +176,7 @@ const OrderManagement: React.FC = () => {
         tableOrAddress = "Address Not Available";
       }
     }
-    
+
     return {
       id: apiOrder._id,
       orderId: apiOrder.orderId, // Store the readable order ID
@@ -176,14 +185,23 @@ const OrderManagement: React.FC = () => {
       phone,
       type: apiOrder.orderType as "delivery" | "dinein",
       tableOrAddress,
-      status: apiOrder.status.toLowerCase() as "pending" | "ready" | "completed" | "cancel",
+      status: apiOrder.status.toLowerCase() as
+        | "pending"
+        | "ready"
+        | "completed"
+        | "cancel",
       payment: {
         amount: apiOrder.grandTotal,
         method: "UPI", // Add appropriate method from API
       },
       isPaid: apiOrder.isPaid || false,
-      paymentStatus: apiOrder.paymentStatus === "COMPLETED" || apiOrder.paymentStatus === "SUCCESS" ? "SUCCESS" : 
-                     apiOrder.paymentStatus === "PENDING" ? "PENDING" : "FAILED",
+      paymentStatus:
+        apiOrder.paymentStatus === "COMPLETED" ||
+        apiOrder.paymentStatus === "SUCCESS"
+          ? "SUCCESS"
+          : apiOrder.paymentStatus === "PENDING"
+          ? "PENDING"
+          : "FAILED",
       date: new Date(apiOrder.createdAt).toLocaleString(),
       deliveryBoy: apiOrder.deliveryBoy || null, // Add delivery boy info
       items: apiOrder.items?.map((item: any) => ({
@@ -201,7 +219,7 @@ const OrderManagement: React.FC = () => {
   const handleRefresh = async () => {
     try {
       setIsRefreshing(true);
-      
+
       // Prepare filters based on selected values and active tab
       const filters = {
         ...(searchTerm && { search: searchTerm }),
@@ -219,43 +237,44 @@ const OrderManagement: React.FC = () => {
       };
 
       // Add status filter based on active tab for backend filtering
-      if (activeFilter === 'completed') {
-        filters.status = '';
-      } else if (activeFilter === 'pending') {
-        filters.status = 'pending';
-      } else if (activeFilter === 'cancel') {
-        filters.status = 'cancel';
+      if (activeFilter === "completed") {
+        filters.status = "";
+      } else if (activeFilter === "pending") {
+        filters.status = "pending";
+      } else if (activeFilter === "cancel") {
+        filters.status = "cancel";
       }
 
       const response = await getAllOrders(currentPage, itemsPerPage, filters);
-      
-      console.log('API Response:', response);
-      console.log('Active Filter:', activeFilter);
-      console.log('Filters sent:', filters);
-      
+
+      console.log("API Response:", response);
+      console.log("Active Filter:", activeFilter);
+      console.log("Filters sent:", filters);
+
       // Based on your backend code, use the appropriate array for display
       let orderItems: any[] = [];
-      
-      if (activeFilter === 'completed') {
+
+      if (activeFilter === "completed") {
         // Show only completed orders
         orderItems = response.result.completedOrders || [];
-      } else if (activeFilter === 'pending') {
+      } else if (activeFilter === "pending") {
         // Show only pending orders
         orderItems = response.result.pendingOrders || [];
-      } else if (activeFilter === 'cancel') {
+      } else if (activeFilter === "cancel") {
         // Show only cancelled orders
         orderItems = response.result.cancelledOrders || [];
       }
-      
-      console.log('Order items before transform:', orderItems);
-      
+
+      console.log("Order items before transform:", orderItems);
+
       setOrders(orderItems.map(transformApiResponse));
-      
+
       // Update summary from API with all required fields
-      const totalOrders = (response.result.summary.totalCompleted || 0) + 
-                         (response.result.summary.totalPending || 0) + 
-                         (response.result.summary.cancelledOrders || 0);
-      
+      const totalOrders =
+        (response.result.summary.totalCompleted || 0) +
+        (response.result.summary.totalPending || 0) +
+        (response.result.summary.cancelledOrders || 0);
+
       setOrdersSummary({
         totalOrders: totalOrders,
         totalCompleted: response.result.summary.totalCompleted || 0,
@@ -263,7 +282,7 @@ const OrderManagement: React.FC = () => {
         totalOrderValue: response.result.summary.totalOrderValue || 0,
         cancelledOrders: response.result.summary.cancelledOrders || 0,
       });
-      
+
       // Update pagination
       setTotalPages(response.result.totalPages);
       setLastRefresh(new Date());
@@ -312,19 +331,19 @@ const OrderManagement: React.FC = () => {
   // Handle stats card clicks
   const handleCompletedOrdersClick = async () => {
     setIsTabLoading(true);
-    setActiveFilter('completed');
+    setActiveFilter("completed");
     setCurrentPage(1);
   };
 
   const handlePendingOrdersClick = async () => {
     setIsTabLoading(true);
-    setActiveFilter('pending');
+    setActiveFilter("pending");
     setCurrentPage(1);
   };
 
   const handleCancelledOrdersClick = async () => {
     setIsTabLoading(true);
-    setActiveFilter('cancel');
+    setActiveFilter("cancel");
     setCurrentPage(1);
   };
 
@@ -358,7 +377,9 @@ const OrderManagement: React.FC = () => {
   };
 
   // Get payment status icon and styling
-  const getPaymentStatusIcon = (paymentStatus: "SUCCESS" | "PENDING" | "FAILED") => {
+  const getPaymentStatusIcon = (
+    paymentStatus: "SUCCESS" | "PENDING" | "FAILED"
+  ) => {
     switch (paymentStatus) {
       case "SUCCESS":
         return <CheckCircleIcon className="h-5 w-5 text-green-500" />;
@@ -371,7 +392,9 @@ const OrderManagement: React.FC = () => {
     }
   };
 
-  const getPaymentStatusColor = (paymentStatus: "SUCCESS" | "PENDING" | "FAILED") => {
+  const getPaymentStatusColor = (
+    paymentStatus: "SUCCESS" | "PENDING" | "FAILED"
+  ) => {
     switch (paymentStatus) {
       case "SUCCESS":
         return "bg-green-100 text-green-800";
@@ -433,7 +456,6 @@ const OrderManagement: React.FC = () => {
             />
           </div>
           <div className="flex gap-2 flex-wrap">
-
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
@@ -461,8 +483,10 @@ const OrderManagement: React.FC = () => {
             onClick={handleCompletedOrdersClick}
             disabled={isTabLoading}
             className={`bg-white p-6 rounded-xl border-2 hover:shadow-lg transition-all duration-200 text-left ${
-              activeFilter === 'completed' ? 'border-green-500 shadow-lg' : 'border-gray-200'
-            } ${isTabLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              activeFilter === "completed"
+                ? "border-green-500 shadow-lg"
+                : "border-gray-200"
+            } ${isTabLoading ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <div className="flex items-center justify-between">
               <div>
@@ -478,16 +502,18 @@ const OrderManagement: React.FC = () => {
                 </p>
               </div>
               <div className="bg-green-100 p-3 rounded-lg">
-                {isTabLoading && activeFilter === 'completed' ? (
+                {isTabLoading && activeFilter === "completed" ? (
                   <ArrowPathIcon className="h-6 w-6 text-green-600 animate-spin" />
                 ) : (
                   <CheckCircleIcon className="h-6 w-6 text-green-600" />
                 )}
               </div>
             </div>
-            {activeFilter === 'completed' && (
+            {activeFilter === "completed" && (
               <div className="mt-2 text-xs text-green-600 font-medium">
-                {isTabLoading ? 'Loading...' : 'Currently viewing completed orders'}
+                {isTabLoading
+                  ? "Loading..."
+                  : "Currently viewing completed orders"}
               </div>
             )}
           </button>
@@ -497,8 +523,10 @@ const OrderManagement: React.FC = () => {
             onClick={handlePendingOrdersClick}
             disabled={isTabLoading}
             className={`bg-white p-6 rounded-xl border-2 hover:shadow-lg transition-all duration-200 text-left ${
-              activeFilter === 'pending' ? 'border-yellow-500 shadow-lg' : 'border-gray-200'
-            } ${isTabLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              activeFilter === "pending"
+                ? "border-yellow-500 shadow-lg"
+                : "border-gray-200"
+            } ${isTabLoading ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <div className="flex items-center justify-between">
               <div>
@@ -514,16 +542,18 @@ const OrderManagement: React.FC = () => {
                 </p>
               </div>
               <div className="bg-yellow-100 p-3 rounded-lg">
-                {isTabLoading && activeFilter === 'pending' ? (
+                {isTabLoading && activeFilter === "pending" ? (
                   <ArrowPathIcon className="h-6 w-6 text-yellow-600 animate-spin" />
                 ) : (
                   <ClockIcon className="h-6 w-6 text-yellow-600" />
                 )}
               </div>
             </div>
-            {activeFilter === 'pending' && (
+            {activeFilter === "pending" && (
               <div className="mt-2 text-xs text-yellow-600 font-medium">
-                {isTabLoading ? 'Loading...' : 'Currently viewing pending orders'}
+                {isTabLoading
+                  ? "Loading..."
+                  : "Currently viewing pending orders"}
               </div>
             )}
           </button>
@@ -533,8 +563,10 @@ const OrderManagement: React.FC = () => {
             onClick={handleCancelledOrdersClick}
             disabled={isTabLoading}
             className={`bg-white p-6 rounded-xl border-2 hover:shadow-lg transition-all duration-200 text-left ${
-              activeFilter === 'cancel' ? 'border-red-500 shadow-lg' : 'border-gray-200'
-            } ${isTabLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              activeFilter === "cancel"
+                ? "border-red-500 shadow-lg"
+                : "border-gray-200"
+            } ${isTabLoading ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <div className="flex items-center justify-between">
               <div>
@@ -550,16 +582,18 @@ const OrderManagement: React.FC = () => {
                 </p>
               </div>
               <div className="bg-red-100 p-3 rounded-lg">
-                {isTabLoading && activeFilter === 'cancel' ? (
+                {isTabLoading && activeFilter === "cancel" ? (
                   <ArrowPathIcon className="h-6 w-6 text-red-600 animate-spin" />
                 ) : (
                   <XCircleIcon className="h-6 w-6 text-red-600" />
                 )}
               </div>
             </div>
-            {activeFilter === 'cancel' && (
+            {activeFilter === "cancel" && (
               <div className="mt-2 text-xs text-red-600 font-medium">
-                {isTabLoading ? 'Loading...' : 'Currently viewing cancelled orders'}
+                {isTabLoading
+                  ? "Loading..."
+                  : "Currently viewing cancelled orders"}
               </div>
             )}
           </button>
@@ -587,18 +621,23 @@ const OrderManagement: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-medium text-gray-900">
-                  {activeFilter === 'completed' ? 'Completed Orders' : 
-                   activeFilter === 'pending' ? 'Pending Orders' : 
-                   'Cancelled Orders'} ({filteredOrders.length})
+                  {activeFilter === "completed"
+                    ? "Completed Orders"
+                    : activeFilter === "pending"
+                    ? "Pending Orders"
+                    : "Cancelled Orders"}{" "}
+                  ({filteredOrders.length})
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  {activeFilter === 'completed' ? 'Showing only completed orders' :
-                   activeFilter === 'pending' ? 'Showing only pending orders' :
-                   'Showing only cancelled orders'}
+                  {activeFilter === "completed"
+                    ? "Showing only completed orders"
+                    : activeFilter === "pending"
+                    ? "Showing only pending orders"
+                    : "Showing only cancelled orders"}
                 </p>
               </div>
               <div className="flex gap-2">
-                {activeFilter !== 'completed' && (
+                {activeFilter !== "completed" && (
                   <button
                     onClick={handleCompletedOrdersClick}
                     className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium cursor-pointer"
@@ -606,7 +645,7 @@ const OrderManagement: React.FC = () => {
                     View Completed
                   </button>
                 )}
-                {activeFilter !== 'pending' && (
+                {activeFilter !== "pending" && (
                   <button
                     onClick={handlePendingOrdersClick}
                     className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium cursor-pointer"
@@ -614,7 +653,7 @@ const OrderManagement: React.FC = () => {
                     View Pending
                   </button>
                 )}
-                {activeFilter !== 'cancel' && (
+                {activeFilter !== "cancel" && (
                   <button
                     onClick={handleCancelledOrdersClick}
                     className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium cursor-pointer"
@@ -758,7 +797,9 @@ const OrderManagement: React.FC = () => {
                               order.status
                             )}`}
                           >
-                            {order.status === "completed" ? "Out of Delivery" : order.status}
+                            {order.status === "completed"
+                              ? "Delivered"
+                              : order.status}
                           </span>
                         </div>
                       </td>

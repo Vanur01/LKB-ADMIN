@@ -261,7 +261,7 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
     msg += `${order.type === "dinein" ? "Table Number" : "Delivery Address"}: ${
       order.tableOrAddress
     }\n`;
-    msg += `Status: ${order.status === "completed" ? "Out of Delivery" : order.status}\n`;
+    msg += `Status: ${order.status === "completed" ? "Delivery" : order.status}\n`;
     msg += `\nItems:\n`;
     order.items?.forEach((item, idx) => {
       msg += `${idx + 1}. ${item.name} (${item.category}) x${
@@ -373,7 +373,7 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
               >
                 <option value="pending">Pending</option>
                 <option value="ready">Ready</option>
-                <option value="completed">Out of Delivery</option>
+                <option value="completed">Delivery</option>
                 <option value="cancel">Cancel</option>
               </select>
             </div>

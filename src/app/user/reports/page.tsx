@@ -104,7 +104,7 @@ const ReportsPage = () => {
               : `${order.dineInDetails?.firstName} ${order.dineInDetails?.lastName}`,
             order.deliveryDetails?.phone || order.dineInDetails?.phone || "N/A",
             order.orderType === "delivery" ? "Delivery" : "Dine-in",
-            order.status === "completed" ? "Out of Delivery" : order.status.charAt(0).toUpperCase() + order.status.slice(1),
+            order.status === "completed" ? "Delivered" : order.status.charAt(0).toUpperCase() + order.status.slice(1),
             order.paymentStatus,
             order.grandTotal,
             order.orderType === "delivery"
@@ -162,7 +162,7 @@ const ReportsPage = () => {
               ? `${order.deliveryDetails.firstName} ${order.deliveryDetails.lastName}`
               : "N/A",
             order.deliveryDetails?.phone || "N/A",
-            "Out of Delivery",
+            "Delivered",
             order.paymentStatus,
             order.grandTotal,
             order.deliveryCharges || 0,
@@ -658,7 +658,7 @@ const ReportsPage = () => {
                         }`}
                       >
                         {order.status === "completed"
-                          ? "Out of Delivery"
+                          ? "Delivered"
                           : order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                       </span>
                     </td>
@@ -801,7 +801,7 @@ const ReportsPage = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-800">
-                        Out of Delivery
+                        Delivered
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

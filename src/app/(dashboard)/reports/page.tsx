@@ -27,14 +27,17 @@ const ReportsPage = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<string>("today");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  
+
   // Custom date range state
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [isCustomDateValid, setIsCustomDateValid] = useState(false);
 
-  const fetchDashboard = async (period: string, customRange?: { startDate?: string; endDate?: string }) => {
+  const fetchDashboard = async (
+    period: string,
+    customRange?: { startDate?: string; endDate?: string }
+  ) => {
     setLoading(true);
     setError(null);
     try {
@@ -90,7 +93,9 @@ const ReportsPage = () => {
     if (selectedPeriod === "custom") {
       const start = new Date(startDate);
       const end = new Date(endDate);
-      const isValid = Boolean(startDate && endDate && start <= end && start <= new Date());
+      const isValid = Boolean(
+        startDate && endDate && start <= end && start <= new Date()
+      );
       setIsCustomDateValid(isValid);
     }
   }, [startDate, endDate, selectedPeriod]);
@@ -128,8 +133,14 @@ const ReportsPage = () => {
         ["Total Orders", currentStats?.totalOrders ?? 0],
         ["Total Revenue", `₹${currentStats?.totalRevenue ?? 0}`],
         ["Average Order Value", `₹${currentStats?.avgOrderValue ?? 0}`],
-        ["Completed Delivery Orders", currentStats?.completedDeliveryOrdersCount ?? 0],
-        ["Completed Dine-in Orders", currentStats?.completedDineInOrdersCount ?? 0],
+        [
+          "Completed Delivery Orders",
+          currentStats?.completedDeliveryOrdersCount ?? 0,
+        ],
+        [
+          "Completed Dine-in Orders",
+          currentStats?.completedDineInOrdersCount ?? 0,
+        ],
         ["Report Period", getPeriodLabel(selectedPeriod)],
         ["Generated On", new Date().toLocaleString()],
       ];
@@ -160,7 +171,9 @@ const ReportsPage = () => {
               : `${order.dineInDetails?.firstName} ${order.dineInDetails?.lastName}`,
             order.deliveryDetails?.phone || order.dineInDetails?.phone || "N/A",
             order.orderType === "delivery" ? "Delivery" : "Dine-in",
-            order.status === "completed" ? "Out of Delivery" : order.status.charAt(0).toUpperCase() + order.status.slice(1),
+            order.status === "completed"
+              ? "Delivered"
+              : order.status.charAt(0).toUpperCase() + order.status.slice(1),
             order.paymentStatus,
             order.grandTotal,
             order.orderType === "delivery"
@@ -218,7 +231,7 @@ const ReportsPage = () => {
               ? `${order.deliveryDetails.firstName} ${order.deliveryDetails.lastName}`
               : "N/A",
             order.deliveryDetails?.phone || "N/A",
-            "Out of Delivery",
+            "Delivered",
             order.paymentStatus,
             order.grandTotal,
             order.deliveryCharges || 0,
@@ -253,7 +266,11 @@ const ReportsPage = () => {
         ];
         deliveryOrdersSheet["!cols"] = deliveryWscols;
 
-        XLSX.utils.book_append_sheet(wb, deliveryOrdersSheet, "Completed Delivery Orders");
+        XLSX.utils.book_append_sheet(
+          wb,
+          deliveryOrdersSheet,
+          "Completed Delivery Orders"
+        );
       }
 
       // Prepare Completed Dine-in Orders Sheet
@@ -301,7 +318,11 @@ const ReportsPage = () => {
         ];
         dineInOrdersSheet["!cols"] = dineInWscols;
 
-        XLSX.utils.book_append_sheet(wb, dineInOrdersSheet, "Completed Dine-in Orders");
+        XLSX.utils.book_append_sheet(
+          wb,
+          dineInOrdersSheet,
+          "Completed Dine-in Orders"
+        );
       }
 
       // Add Order Items Details Sheet (if data exists and items are available)
@@ -313,7 +334,15 @@ const ReportsPage = () => {
 
       if (allOrdersWithItems.length > 0) {
         const itemsData = [
-          ["Order ID", "Order Type", "Customer Name", "Item Name", "Quantity", "Unit Price", "Total Price"],
+          [
+            "Order ID",
+            "Order Type",
+            "Customer Name",
+            "Item Name",
+            "Quantity",
+            "Unit Price",
+            "Total Price",
+          ],
         ];
 
         allOrdersWithItems.forEach((order) => {
@@ -323,9 +352,10 @@ const ReportsPage = () => {
               : order.dineInDetails
               ? `${order.dineInDetails.firstName} ${order.dineInDetails.lastName}`
               : "N/A";
-            
-            const orderType = order.orderType === "delivery" ? "Delivery" : "Dine-in";
-            
+
+            const orderType =
+              order.orderType === "delivery" ? "Delivery" : "Dine-in";
+
             order.items.forEach((item) => {
               itemsData.push([
                 order.orderId || order._id,
@@ -389,15 +419,15 @@ const ReportsPage = () => {
         return "This Month";
       case "custom":
         if (startDate && endDate) {
-          const start = new Date(startDate).toLocaleDateString('en-IN', { 
-            day: 'numeric', 
-            month: 'short', 
-            year: 'numeric' 
+          const start = new Date(startDate).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
           });
-          const end = new Date(endDate).toLocaleDateString('en-IN', { 
-            day: 'numeric', 
-            month: 'short', 
-            year: 'numeric' 
+          const end = new Date(endDate).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
           });
           return `${start} - ${end}`;
         }
@@ -499,7 +529,9 @@ const ReportsPage = () => {
                       : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                   }`}
                 >
-                  {period === "custom" ? "Custom Range" : getPeriodLabel(period)}
+                  {period === "custom"
+                    ? "Custom Range"
+                    : getPeriodLabel(period)}
                 </button>
               ))}
             </div>
@@ -521,7 +553,9 @@ const ReportsPage = () => {
             <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
               <div className="flex flex-col space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-gray-900">Select Date Range</h3>
+                  <h3 className="text-sm font-medium text-gray-900">
+                    Select Date Range
+                  </h3>
                   <button
                     onClick={clearFilters}
                     className="text-xs text-gray-500 hover:text-gray-700 underline"
@@ -531,23 +565,27 @@ const ReportsPage = () => {
                 </div>
                 <div className="flex items-center space-x-4">
                   <div className="flex flex-col">
-                    <label className="text-xs text-gray-500 mb-1">Start Date</label>
+                    <label className="text-xs text-gray-500 mb-1">
+                      Start Date
+                    </label>
                     <input
                       type="date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      max={new Date().toISOString().split('T')[0]}
+                      max={new Date().toISOString().split("T")[0]}
                       className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                     />
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-xs text-gray-500 mb-1">End Date</label>
+                    <label className="text-xs text-gray-500 mb-1">
+                      End Date
+                    </label>
                     <input
                       type="date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
                       min={startDate}
-                      max={new Date().toISOString().split('T')[0]}
+                      max={new Date().toISOString().split("T")[0]}
                       className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                     />
                   </div>
@@ -576,7 +614,8 @@ const ReportsPage = () => {
                 </div>
                 {!isCustomDateValid && (startDate || endDate) && (
                   <p className="text-xs text-red-500">
-                    Please select valid start and end dates. End date should be after start date and not in the future.
+                    Please select valid start and end dates. End date should be
+                    after start date and not in the future.
                   </p>
                 )}
               </div>
@@ -635,7 +674,9 @@ const ReportsPage = () => {
         <div className="bg-white rounded-xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm font-medium">Avg Order Value</p>
+              <p className="text-gray-600 text-sm font-medium">
+                Avg Order Value
+              </p>
               <p className="text-3xl font-bold text-gray-900 mt-1">
                 {loading
                   ? "..."
@@ -658,14 +699,20 @@ const ReportsPage = () => {
         <div className="bg-white rounded-xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm font-medium">Completed Delivery Orders</p>
+              <p className="text-gray-600 text-sm font-medium">
+                Completed Delivery Orders
+              </p>
               <p className="text-3xl font-bold text-gray-900 mt-1">
-                {loading ? "..." : (currentStats?.completedDeliveryOrdersCount ?? 0) + (currentStats?.completedDineInOrdersCount ?? 0)}
+                {loading
+                  ? "..."
+                  : (currentStats?.completedDeliveryOrdersCount ?? 0) +
+                    (currentStats?.completedDineInOrdersCount ?? 0)}
               </p>
               <div className="flex items-center mt-2">
                 <CheckCircleIcon className="h-4 w-4 text-green-500 mr-1" />
                 <span className="text-sm font-medium text-green-600">
-                  Delivery: {currentStats?.completedDeliveryOrdersCount ?? 0}, Dine-in: {currentStats?.completedDineInOrdersCount ?? 0}
+                  Delivery: {currentStats?.completedDeliveryOrdersCount ?? 0},
+                  Dine-in: {currentStats?.completedDineInOrdersCount ?? 0}
                 </span>
               </div>
             </div>
@@ -679,9 +726,13 @@ const ReportsPage = () => {
         <div className="bg-white rounded-xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm font-medium">Completed Dine-in Orders</p>
+              <p className="text-gray-600 text-sm font-medium">
+                Completed Dine-in Orders
+              </p>
               <p className="text-3xl font-bold text-gray-900 mt-1">
-                {loading ? "..." : currentStats?.completedDineInOrdersCount ?? 0}
+                {loading
+                  ? "..."
+                  : currentStats?.completedDineInOrdersCount ?? 0}
               </p>
               <div className="flex items-center mt-2">
                 <CheckCircleIcon className="h-4 w-4 text-orange-500 mr-1" />
@@ -695,7 +746,6 @@ const ReportsPage = () => {
             </div>
           </div>
         </div>
-
       </div>
 
       {/* Recent Orders Table (API) */}
@@ -784,17 +834,22 @@ const ReportsPage = () => {
                             : `${order.dineInDetails?.firstName} ${order.dineInDetails?.lastName}`}
                         </div>
                         <div className="text-gray-500">
-                          {order.deliveryDetails?.phone || order.dineInDetails?.phone}
+                          {order.deliveryDetails?.phone ||
+                            order.dineInDetails?.phone}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        order.orderType === "delivery" 
-                          ? "bg-blue-100 text-blue-800" 
-                          : "bg-purple-100 text-purple-800"
-                      }`}>
-                        {order.orderType === "delivery" ? "Delivery" : "Dine-in"}
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                          order.orderType === "delivery"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-purple-100 text-purple-800"
+                        }`}
+                      >
+                        {order.orderType === "delivery"
+                          ? "Delivery"
+                          : "Dine-in"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -812,15 +867,18 @@ const ReportsPage = () => {
                         }`}
                       >
                         {order.status === "completed"
-                          ? "Out of Delivery"
-                          : order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                          ? "Delivered"
+                          : order.status.charAt(0).toUpperCase() +
+                            order.status.slice(1)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         {getPaymentStatusIcon(order.paymentStatus)}
                         <span
-                          className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(order.paymentStatus)}`}
+                          className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(
+                            order.paymentStatus
+                          )}`}
                         >
                           {order.paymentStatus}
                         </span>
@@ -837,7 +895,9 @@ const ReportsPage = () => {
                           </div>
                         </div>
                       ) : (
-                        <span className="text-gray-400 text-sm">Not Assigned</span>
+                        <span className="text-gray-400 text-sm">
+                          Not Assigned
+                        </span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -853,12 +913,12 @@ const ReportsPage = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
+                      {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </td>
                   </tr>
@@ -874,9 +934,12 @@ const ReportsPage = () => {
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Completed Delivery Orders</h2>
+              <h2 className="text-xl font-bold text-gray-900">
+                Completed Delivery Orders
+              </h2>
               <p className="text-gray-600 mt-1">
-                All completed delivery orders for {getPeriodLabel(selectedPeriod).toLowerCase()}
+                All completed delivery orders for{" "}
+                {getPeriodLabel(selectedPeriod).toLowerCase()}
               </p>
             </div>
             <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -917,19 +980,28 @@ const ReportsPage = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-gray-400">
+                  <td
+                    colSpan={8}
+                    className="px-6 py-4 text-center text-gray-400"
+                  >
                     Loading...
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-red-400">
+                  <td
+                    colSpan={8}
+                    className="px-6 py-4 text-center text-red-400"
+                  >
                     {error}
                   </td>
                 </tr>
               ) : !currentStats?.completedDeliveryOrders?.length ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-gray-400">
+                  <td
+                    colSpan={8}
+                    className="px-6 py-4 text-center text-gray-400"
+                  >
                     No completed delivery orders
                   </td>
                 </tr>
@@ -955,14 +1027,16 @@ const ReportsPage = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-800">
-                        Out of Delivery
+                        Delivered
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         {getPaymentStatusIcon(order.paymentStatus)}
                         <span
-                          className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(order.paymentStatus)}`}
+                          className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(
+                            order.paymentStatus
+                          )}`}
                         >
                           {order.paymentStatus}
                         </span>
@@ -979,7 +1053,9 @@ const ReportsPage = () => {
                           </div>
                         </div>
                       ) : (
-                        <span className="text-gray-400 text-sm">Not Assigned</span>
+                        <span className="text-gray-400 text-sm">
+                          Not Assigned
+                        </span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -997,9 +1073,12 @@ const ReportsPage = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {order.deliveryDetails ? (
                         <div>
-                          <div className="font-medium">{order.deliveryDetails.hostel}</div>
+                          <div className="font-medium">
+                            {order.deliveryDetails.hostel}
+                          </div>
                           <div className="text-xs">
-                            Room {order.deliveryDetails.roomNumber}, Floor {order.deliveryDetails.floor}
+                            Room {order.deliveryDetails.roomNumber}, Floor{" "}
+                            {order.deliveryDetails.floor}
                           </div>
                         </div>
                       ) : (
@@ -1007,12 +1086,12 @@ const ReportsPage = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
+                      {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </td>
                   </tr>
@@ -1028,9 +1107,12 @@ const ReportsPage = () => {
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Completed Dine-in Orders</h2>
+              <h2 className="text-xl font-bold text-gray-900">
+                Completed Dine-in Orders
+              </h2>
               <p className="text-gray-600 mt-1">
-                All completed dine-in orders for {getPeriodLabel(selectedPeriod).toLowerCase()}
+                All completed dine-in orders for{" "}
+                {getPeriodLabel(selectedPeriod).toLowerCase()}
               </p>
             </div>
             <div className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -1071,19 +1153,28 @@ const ReportsPage = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-gray-400">
+                  <td
+                    colSpan={8}
+                    className="px-6 py-4 text-center text-gray-400"
+                  >
                     Loading...
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-red-400">
+                  <td
+                    colSpan={8}
+                    className="px-6 py-4 text-center text-red-400"
+                  >
                     {error}
                   </td>
                 </tr>
               ) : !currentStats?.completedDineInOrders?.length ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-gray-400">
+                  <td
+                    colSpan={8}
+                    className="px-6 py-4 text-center text-gray-400"
+                  >
                     No completed dine-in orders
                   </td>
                 </tr>
@@ -1116,7 +1207,9 @@ const ReportsPage = () => {
                       <div className="flex items-center">
                         {getPaymentStatusIcon(order.paymentStatus)}
                         <span
-                          className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(order.paymentStatus)}`}
+                          className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(
+                            order.paymentStatus
+                          )}`}
                         >
                           {order.paymentStatus}
                         </span>
@@ -1138,12 +1231,12 @@ const ReportsPage = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
+                      {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </td>
                   </tr>
