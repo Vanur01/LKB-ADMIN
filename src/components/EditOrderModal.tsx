@@ -19,6 +19,7 @@ type OrderItem = {
 
 type Order = {
   id: string;
+  orderId?: string;
   firstName: string;
   lastName: string;
   phone?: string;
@@ -36,6 +37,9 @@ type Order = {
   paymentStatus: "SUCCESS" | "PENDING" | "FAILED";
   date: string;
   items?: OrderItem[];
+  totalAmount?: number;
+  deliveryCharges?: number;
+  grandTotal?: number;
 };
 
 import { getOrderById, updateOrder } from "@/api/Order/page";
@@ -136,6 +140,7 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
           : "pending";
         const transformedOrder: Order = {
           id: apiOrder._id,
+          orderId: apiOrder.orderId, // Extract orderId from API response
           firstName: firstName,
           lastName: lastName,
           phone: phone,
@@ -160,6 +165,9 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
             price: item.price,
             available: true,
           })),
+          totalAmount: apiOrder.totalAmount,
+          deliveryCharges: apiOrder.deliveryCharges || 0,
+          grandTotal: apiOrder.grandTotal,
         };
         setOrder(transformedOrder);
         setStatus(transformedOrder.status);
@@ -255,7 +263,7 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
   // Compose order details message for WhatsApp
   const getOrderDetailsMessage = () => {
     let msg = `Order Details\n`;
-    msg += `Order ID: ${order.id}\n`;
+    msg += `Order ID: ${order.orderId || order.id}\n`;
     msg += `Customer: ${order.firstName} ${order.lastName}\n`;
     if (order.phone) msg += `Phone: ${order.phone}\n`;
     msg += `${order.type === "dinein" ? "Table Number" : "Delivery Address"}: ${
@@ -287,28 +295,207 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
     setShowShareModal(false);
   };
 
-  // Print only this modal content
+  // Print invoice with custom billing design
   const handlePrint = () => {
     if (typeof window === "undefined") return;
-    const content = document.getElementById("printable-modal");
-    if (!content) return;
 
     const printWindow = window.open("", "", "width=900,height=700");
     if (!printWindow) return;
 
-    const styleTags = Array.from(
-      document.querySelectorAll('link[rel="stylesheet"], style')
-    )
-      .map((el) => (el as HTMLLinkElement | HTMLStyleElement).outerHTML)
-      .join("");
+    const invoiceHTML = `
+      <!doctype html>
+      <html>
+        <head>
+          <title>Invoice - ${order.orderId || order.id}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: 'Courier New', monospace; 
+              background: #fff; 
+              color: #000; 
+              line-height: 1.2;
+              padding: 5px;
+              font-size: 12px;
+            }
+            .receipt { 
+              max-width: 300px; 
+              margin: 0 auto; 
+              background: white;
+            }
+            .center { text-align: center; }
+            .left { text-align: left; }
+            .right { text-align: right; }
+            .bold { font-weight: bold; }
+            .line { 
+              border-bottom: 1px dashed #000; 
+              margin: 8px 0; 
+            }
+            .double-line { 
+              border-bottom: 2px solid #000; 
+              margin: 8px 0; 
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 10px; 
+            }
+            .header h1 { 
+              font-size: 16px; 
+              font-weight: bold; 
+              margin: 2px 0; 
+            }
+            .header h2 { 
+              font-size: 14px; 
+              margin: 2px 0; 
+            }
+            .header p { 
+              font-size: 10px; 
+              margin: 1px 0; 
+            }
+            .order-details { 
+              margin: 10px 0; 
+              font-size: 11px;
+            }
+            .item-row { 
+              display: flex; 
+              justify-content: space-between; 
+              margin: 2px 0;
+              font-size: 11px;
+            }
+            .item-name { 
+              flex: 1; 
+              text-align: left; 
+            }
+            .item-qty-price { 
+              text-align: right; 
+              min-width: 80px;
+            }
+            .total-row { 
+              display: flex; 
+              justify-content: space-between; 
+              margin: 3px 0;
+              font-size: 11px;
+            }
+            .grand-total { 
+              font-weight: bold; 
+              font-size: 13px;
+              border-top: 1px solid #000;
+              padding-top: 5px;
+              margin-top: 5px;
+            }
+            .footer { 
+              text-align: center; 
+              margin-top: 15px; 
+              font-size: 9px;
+            }
+            .spacer { margin: 5px 0; }
+            @media print {
+              body { padding: 2px; }
+              .receipt { max-width: 100%; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="receipt">
+            <!-- Header -->
+            <div class="header">
+              <h1>NESTLE CORNER-2</h1>
+              <p>L-Gate, IIT, Argul, Jatni, 752050</p>
+              <p>Mobile: +91 7008203600</p>
+              <p>GST: 21AADCL9940L1ZA</p>
+              <p>FSSAI: 12022019000036</p>
+            </div>
+            
+            <div class="double-line"></div>
+            
+            <!-- Order Details -->
+            <div class="order-details">
+              <div style="display: flex; justify-content: space-between;">
+                <span>Bill No: ${order.orderId || order.id}</span>
+                <span>${new Date(order.date).toLocaleDateString()}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span>Time: ${new Date(order.date).toLocaleTimeString()}</span>
+                <span>${order.type === "dinein" ? "DINE-IN" : "DELIVERY"}</span>
+              </div>
+              <div class="spacer"></div>
+              <div>Customer: ${order.firstName} ${order.lastName}</div>
+              ${order.phone ? `<div>Phone: ${order.phone}</div>` : ''}
+              <div>${order.type === "dinein" ? "Table" : "Address"}: ${order.tableOrAddress}</div>
+            </div>
+            
+            <div class="line"></div>
+            
+            <!-- Items -->
+            <div>
+              ${order.items?.map((item, index) => `
+                <div class="item-row">
+                  <div class="item-name">
+                    ${item.name}${item.category === "Veg" ? " (V)" : " (NV)"}
+                  </div>
+                </div>
+                <div class="item-row">
+                  <div>${item.quantity} x ₹${item.price.toFixed(2)}</div>
+                  <div class="item-qty-price">₹${(item.price * item.quantity).toFixed(2)}</div>
+                </div>
+                <div class="spacer"></div>
+              `).join('') || ''}
+            </div>
+            
+            <div class="line"></div>
+            
+            <!-- Totals -->
+            <div>
+              <div class="total-row">
+                <span>Subtotal:</span>
+                <span>₹${(order.totalAmount || order.payment.amount).toFixed(2)}</span>
+              </div>
+              ${order.type === "delivery" ? `
+                <div class="total-row">
+                  <span>Packaging:</span>
+                  <span>₹${(() => {
+                    const grandTotal = order.grandTotal || 0;
+                    const totalAmount = order.totalAmount || order.payment.amount;
+                    const deliveryCharges = order.deliveryCharges || 0;
+                    const packagingCost = grandTotal - (totalAmount + deliveryCharges);
+                    return Math.max(0, packagingCost).toFixed(2);
+                  })()}</span>
+                </div>
+                <div class="total-row">
+                  <span>Delivery:</span>
+                  <span>₹${(order.deliveryCharges || 0).toFixed(2)}</span>
+                </div>
+              ` : ''}
+              
+              <div class="total-row grand-total">
+                <span>GRAND TOTAL:</span>
+                <span>₹${(order.grandTotal || order.payment.amount).toFixed(2)}</span>
+              </div>
+            </div>
+            
+            <div class="line"></div>
+            
+            <!-- Payment Info -->
+            <div class="center" style="margin: 8px 0; font-size: 11px;">
+              <div>Payment: ${order.paymentStatus}</div>
+              <div>Status: ${order.status.toUpperCase()}</div>
+            </div>
+            
+            <div class="line"></div>
+            
+            <!-- Footer -->
+            <div class="footer">
+              <p class="bold">THANK YOU FOR ORDERING!</p>
+              <p>Visit Again</p>
+              <div class="spacer"></div>
+              <p>***** COMPUTER GENERATED BILL *****</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
 
     printWindow.document.open();
-    printWindow.document.write(
-      `<!doctype html><html><head><title>Print</title>${styleTags}<style>
-        @media print { .no-print { display: none !important; } }
-        html, body { background: #fff; }
-      </style></head><body>${content.innerHTML}</body></html>`
-    );
+    printWindow.document.write(invoiceHTML);
     printWindow.document.close();
     printWindow.onload = () => {
       printWindow.focus();
@@ -348,7 +535,7 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
           <div className="bg-gradient-to-r from-orange-600 to-orange-500 p-4 flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold text-white">
-                Edit Order - #{order.id}
+                Edit Order - #{order.orderId}
               </h2>
             </div>
             <button
