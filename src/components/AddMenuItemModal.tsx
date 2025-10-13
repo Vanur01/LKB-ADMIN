@@ -46,6 +46,7 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
     image: '',
     isAvailable: true
   });
+  const [orderType, setOrderType] = useState<'delivery' | 'dinein'>('delivery');
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategory, setNewCategory] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -66,6 +67,7 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
       image: '',
       isAvailable: true
     });
+    setOrderType('delivery');
     setImageFile(null);
     setImagePreview('');
     setShowAddCategory(false);
@@ -181,18 +183,20 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
           }
           formData.append('isVeg', (newItem.dietary === 'Vegetarian').toString());
           formData.append('isAvailable', String(newItem.isAvailable));
+          formData.append('orderType', orderType);
           formData.append('menuImage', imageFile);
           // Use axios.put with FormData
           response = await updateMenuItem(editItem._id, formData);
         } else {
           // No image update, send JSON
-          const updateData: Partial<ApiMenuItem> = {
+          const updateData: any = {
             name: newItem.name,
             category: newItem.categoryId,
             description: newItem.description,
             price: Number(newItem.price),
             isVeg: newItem.dietary === 'Vegetarian',
             isAvailable: newItem.isAvailable,
+            orderType: orderType,
           };
           
           if (newItem.packagingCost) {
@@ -218,6 +222,7 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
         }
         formData.append('isVeg', (newItem.dietary === 'Vegetarian').toString());
         formData.append('isAvailable', 'true');
+        formData.append('orderType', orderType);
         if (imageFile) {
           formData.append('menuImage', imageFile);
         }
@@ -335,6 +340,37 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
               )}
             </div>
 
+            {/* Order Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Order Type
+              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="orderType"
+                    value="delivery"
+                    checked={orderType === 'delivery'}
+                    onChange={(e) => setOrderType(e.target.value as 'delivery' | 'dinein')}
+                    className="mr-2 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm text-gray-700">🚚 Delivery</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="orderType"
+                    value="dinein"
+                    checked={orderType === 'dinein'}
+                    onChange={(e) => setOrderType(e.target.value as 'delivery' | 'dinein')}
+                    className="mr-2 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm text-gray-700">🍽️ Dine In</span>
+                </label>
+              </div>
+            </div>
+
             {/* Price */}
             <div>
               <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
@@ -353,23 +389,25 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
               />
             </div>
 
-            {/* Packaging Cost */}
-            <div>
-              <label htmlFor="packagingCost" className="block text-sm font-medium text-gray-700 mb-1">
-                Packaging Cost (₹)
-              </label>
-              <input
-                type="number"
-                id="packagingCost"
-                value={newItem.packagingCost}
-                onChange={(e) => setNewItem(prev => ({ ...prev, packagingCost: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Enter packaging cost"
-                min="0"
-                step="0.01"
-              />
-              <p className="text-xs text-gray-500 mt-1">Additional packaging cost will be added to the final price</p>
-            </div>
+            {/* Packaging Cost - Only show for delivery orders */}
+            {orderType === 'delivery' && (
+              <div>
+                <label htmlFor="packagingCost" className="block text-sm font-medium text-gray-700 mb-1">
+                  Packaging Cost
+                </label>
+                <input
+                  type="number"
+                  id="packagingCost"
+                  value={newItem.packagingCost}
+                  onChange={(e) => setNewItem(prev => ({ ...prev, packagingCost: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Enter packaging cost"
+                  min="0"
+                  step="0.01"
+                />
+                <p className="text-xs text-gray-500 mt-1">Additional packaging cost for delivery orders</p>
+              </div>
+            )}
 
             {/* Description */}
             <div>
