@@ -172,7 +172,7 @@ const ReportsPage = () => {
             order.deliveryDetails?.phone || order.dineInDetails?.phone || "N/A",
             order.orderType === "delivery" ? "Delivery" : "Dine-in",
             order.status === "completed"
-              ? "Delivered"
+              ? (order.orderType === "dinein" ? "Delivered" : "Out for Delivery")
               : order.status.charAt(0).toUpperCase() + order.status.slice(1),
             order.paymentStatus,
             order.grandTotal,
@@ -231,7 +231,7 @@ const ReportsPage = () => {
               ? `${order.deliveryDetails.firstName} ${order.deliveryDetails.lastName}`
               : "N/A",
             order.deliveryDetails?.phone || "N/A",
-            "Delivered",
+            "Out for Delivery",
             order.paymentStatus,
             order.grandTotal,
             order.deliveryCharges || 0,
@@ -293,7 +293,7 @@ const ReportsPage = () => {
               ? `${order.dineInDetails.firstName} ${order.dineInDetails.lastName}`
               : "N/A",
             order.dineInDetails?.phone || "N/A",
-            "Completed",
+            "Delivered",
             order.paymentStatus,
             order.grandTotal,
             order.dineInDetails?.tableNumber || "N/A",
@@ -867,7 +867,7 @@ const ReportsPage = () => {
                         }`}
                       >
                         {order.status === "completed"
-                          ? "Delivered"
+                          ? (order.orderType === "dinein" ? "Delivered" : "Out for Delivery")
                           : order.status.charAt(0).toUpperCase() +
                             order.status.slice(1)}
                       </span>
@@ -1027,7 +1027,7 @@ const ReportsPage = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-800">
-                        Delivered
+                        Out for Delivery
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

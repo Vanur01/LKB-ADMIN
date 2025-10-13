@@ -758,7 +758,9 @@ const OrderManagement: React.FC = () => {
                               order.status
                             )}`}
                           >
-                            {order.status === "completed" ? "Delivered" : order.status}
+                            {order.status === "completed"
+                              ? (order.type === "dinein" ? "Delivered" : "Out for Delivery")
+                              : order.status}
                           </span>
                         </div>
                       </td>

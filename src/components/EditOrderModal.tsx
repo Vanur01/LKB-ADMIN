@@ -269,7 +269,9 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
     msg += `${order.type === "dinein" ? "Table Number" : "Delivery Address"}: ${
       order.tableOrAddress
     }\n`;
-    msg += `Status: ${order.status === "completed" ? "Delivery" : order.status}\n`;
+    msg += `Status: ${order.status === "completed" 
+      ? (order.type === "dinein" ? "Delivery" : "Out for Delivery") 
+      : order.status}\n`;
     msg += `\nItems:\n`;
     order.items?.forEach((item, idx) => {
       msg += `${idx + 1}. ${item.name} (${item.category}) x${
@@ -477,7 +479,9 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
             <!-- Payment Info -->
             <div class="center" style="margin: 8px 0; font-size: 11px;">
               <div>Payment: ${order.paymentStatus}</div>
-              <div>Status: ${order.status.toUpperCase()}</div>
+              <div>Status: ${order.status === "completed" 
+                ? (order.type === "dinein" ? "DELIVERED" : "OUT FOR DELIVERY")
+                : order.status.toUpperCase()}</div>
             </div>
             
             <div class="line"></div>
@@ -560,7 +564,9 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
               >
                 <option value="pending">Pending</option>
                 <option value="ready">Ready</option>
-                <option value="completed">Delivery</option>
+                <option value="completed">
+                  {order?.type === "dinein" ? "Delivered" : "Out for Delivery"}
+                </option>
                 <option value="cancel">Cancel</option>
               </select>
             </div>
