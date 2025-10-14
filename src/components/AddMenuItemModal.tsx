@@ -178,8 +178,10 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
           formData.append('category', newItem.categoryId);
           formData.append('description', newItem.description);
           formData.append('price', newItem.price.toString());
-          if (newItem.packagingCost) {
+          if (orderType === 'delivery' && newItem.packagingCost) {
             formData.append('packagingCost', newItem.packagingCost.toString());
+          } else {
+            formData.append('packagingCost', '0');
           }
           formData.append('isVeg', (newItem.dietary === 'Vegetarian').toString());
           formData.append('isAvailable', String(newItem.isAvailable));
@@ -199,8 +201,10 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
             orderType: orderType,
           };
           
-          if (newItem.packagingCost) {
+          if (orderType === 'delivery' && newItem.packagingCost) {
             updateData.packagingCost = Number(newItem.packagingCost);
+          } else {
+            updateData.packagingCost = 0;
           }
           response = await updateMenuItem(editItem._id, updateData);
         }
@@ -217,8 +221,10 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
         formData.append('category', newItem.categoryId);
         formData.append('description', newItem.description);
         formData.append('price', newItem.price.toString());
-        if (newItem.packagingCost) {
+        if (orderType === 'delivery' && newItem.packagingCost) {
           formData.append('packagingCost', newItem.packagingCost.toString());
+        } else {
+          formData.append('packagingCost', '0');
         }
         formData.append('isVeg', (newItem.dietary === 'Vegetarian').toString());
         formData.append('isAvailable', 'true');
@@ -363,7 +369,13 @@ const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
                     name="orderType"
                     value="dinein"
                     checked={orderType === 'dinein'}
-                    onChange={(e) => setOrderType(e.target.value as 'delivery' | 'dinein')}
+                    onChange={(e) => {
+                      setOrderType(e.target.value as 'delivery' | 'dinein');
+                      // Clear packaging cost when switching to dine-in
+                      if (e.target.value === 'dinein') {
+                        setNewItem(prev => ({ ...prev, packagingCost: '' }));
+                      }
+                    }}
                     className="mr-2 text-indigo-600 focus:ring-indigo-500"
                   />
                   <span className="text-sm text-gray-700">🍽️ Dine In</span>
