@@ -415,7 +415,7 @@ const ReportsPage = () => {
       {/* Period Selector */}
       <div className="mb-6">
         <div className="flex items-center space-x-1 bg-white p-1 rounded-lg border border-gray-200 w-fit">
-          {["today", "weekly", "monthly"].map((period) => (
+          {["today"].map((period) => (
             <button
               key={period}
               onClick={() => setSelectedPeriod(period)}
