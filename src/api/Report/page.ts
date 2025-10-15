@@ -75,7 +75,7 @@ export interface OrderDashboardResponse {
 
 
 export const getOrderDashboard = async (
-  range: "today" | "weekly" | "monthly" | "custom" = "today",
+  range: "daily" | "weekly" | "monthly" | "custom" = "daily",
   customRange?: { startDate?: string; endDate?: string }
 ): Promise<OrderDashboardResponse> => {
   try {

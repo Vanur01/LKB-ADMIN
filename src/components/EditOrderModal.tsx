@@ -312,12 +312,13 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
-              font-family: 'Courier New', monospace; 
+              font-family: 'Arial', 'Helvetica', sans-serif; 
               background: #fff; 
               color: #000; 
-              line-height: 1.2;
+              line-height: 1.4;
               padding: 5px;
-              font-size: 12px;
+              font-size: 13px;
+              font-weight: 500;
             }
             .receipt { 
               max-width: 300px; 
@@ -338,61 +339,81 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
             }
             .header { 
               text-align: center; 
-              margin-bottom: 10px; 
+              margin-bottom: 12px; 
             }
             .header h1 { 
-              font-size: 16px; 
+              font-size: 18px; 
               font-weight: bold; 
-              margin: 2px 0; 
+              margin: 3px 0; 
+              color: #000;
+              letter-spacing: 0.5px;
             }
             .header h2 { 
-              font-size: 14px; 
+              font-size: 15px; 
               margin: 2px 0; 
+              color: #000;
+              font-weight: 600;
             }
             .header p { 
-              font-size: 10px; 
+              font-size: 11px; 
               margin: 1px 0; 
+              color: #000;
+              font-weight: 500;
             }
             .order-details { 
-              margin: 10px 0; 
-              font-size: 11px;
+              margin: 12px 0; 
+              font-size: 12px;
+              color: #000;
+              font-weight: 500;
             }
             .item-row { 
               display: flex; 
               justify-content: space-between; 
-              margin: 2px 0;
-              font-size: 11px;
+              margin: 3px 0;
+              font-size: 12px;
+              color: #000;
+              font-weight: 500;
             }
             .item-name { 
               flex: 1; 
               text-align: left; 
+              color: #000;
+              font-weight: 600;
             }
             .item-qty-price { 
               text-align: right; 
               min-width: 80px;
+              color: #000;
+              font-weight: 600;
             }
             .total-row { 
               display: flex; 
               justify-content: space-between; 
-              margin: 3px 0;
-              font-size: 11px;
+              margin: 4px 0;
+              font-size: 12px;
+              color: #000;
+              font-weight: 600;
             }
             .grand-total { 
               font-weight: bold; 
-              font-size: 13px;
-              border-top: 1px solid #000;
-              padding-top: 5px;
-              margin-top: 5px;
+              font-size: 14px;
+              border-top: 2px solid #000;
+              padding-top: 6px;
+              margin-top: 6px;
+              color: #000;
             }
             .footer { 
               text-align: center; 
               margin-top: 15px; 
-              font-size: 9px;
+              font-size: 10px;
+              color: #000;
+              font-weight: 600;
             }
-            .spacer { margin: 5px 0; }
+            .spacer { margin: 6px 0; }
             @media print {
               body { padding: 2px; }
               .receipt { max-width: 100%; }
+              * { color: #000 !important; }
             }
           </style>
         </head>
@@ -420,9 +441,9 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
                 <span>${order.type === "dinein" ? "DINE-IN" : "DELIVERY"}</span>
               </div>
               <div class="spacer"></div>
-              <div>Customer: ${order.firstName} ${order.lastName}</div>
-              ${order.phone ? `<div>Phone: ${order.phone}</div>` : ''}
-              <div>${order.type === "dinein" ? "Table" : "Address"}: ${order.tableOrAddress}</div>
+              <div style="color: #000; font-weight: 600;">Customer: ${order.firstName} ${order.lastName}</div>
+              ${order.phone ? `<div style="color: #000; font-weight: 600;">Phone: ${order.phone}</div>` : ''}
+              <div style="color: #000; font-weight: 600;">${order.type === "dinein" ? "Table" : "Address"}: ${order.tableOrAddress}</div>
             </div>
             
             <div class="line"></div>
@@ -477,7 +498,7 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
             <div class="line"></div>
             
             <!-- Payment Info -->
-            <div class="center" style="margin: 8px 0; font-size: 11px;">
+            <div class="center" style="margin: 10px 0; font-size: 12px; color: #000; font-weight: 600;">
               <div>Payment: ${order.paymentStatus}</div>
               <div>Status: ${order.status === "completed" 
                 ? (order.type === "dinein" ? "DELIVERED" : "OUT FOR DELIVERY")
@@ -563,7 +584,7 @@ const EditOrderModal: React.FC<EditOrderProps> = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
               >
                 <option value="pending">Pending</option>
-                <option value="ready">Ready</option>
+                {/* <option value="ready">Ready</option> */}
                 <option value="completed">
                   {order?.type === "dinein" ? "Delivered" : "Out for Delivery"}
                 </option>

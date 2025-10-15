@@ -1,8 +1,7 @@
 import axios from 'axios';
 
 // Define API base URL - update with your backend URL
-const API_BASE_URL = 'https://api.orderfood.coffee/api/v1';
-
+const API_BASE_URL = "https://api.orderfood.coffee/api/v1";
 // Define TypeScript interfaces based on the backend model
 export interface DeliveryBoy {
   _id: string;

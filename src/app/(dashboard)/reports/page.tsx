@@ -24,7 +24,7 @@ const ReportsPage = () => {
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("today");
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("daily");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
@@ -107,14 +107,14 @@ const ReportsPage = () => {
     }
   };
 
-  // Clear filters and reset to today
+  // Clear filters and reset to daily
   const clearFilters = () => {
-    setSelectedPeriod("today");
+    setSelectedPeriod("daily");
     setShowDatePicker(false);
     setStartDate("");
     setEndDate("");
     setIsCustomDateValid(false);
-    fetchDashboard("today");
+    fetchDashboard("daily");
   };
 
   const handleExport = () => {
@@ -162,27 +162,42 @@ const ReportsPage = () => {
             "Table/Address",
             "Delivery Boy",
             "Items Count",
-            "Date & Time",
+            "Date",
+            "Time",
           ],
-          ...currentStats.recentOrders.map((order) => [
-            order.orderId || order._id,
-            order.deliveryDetails
-              ? `${order.deliveryDetails.firstName} ${order.deliveryDetails.lastName}`
-              : `${order.dineInDetails?.firstName} ${order.dineInDetails?.lastName}`,
-            order.deliveryDetails?.phone || order.dineInDetails?.phone || "N/A",
-            order.orderType === "delivery" ? "Delivery" : "Dine-in",
-            order.status === "completed"
-              ? (order.orderType === "dinein" ? "Delivered" : "Out for Delivery")
-              : order.status.charAt(0).toUpperCase() + order.status.slice(1),
-            order.paymentStatus,
-            order.grandTotal,
-            order.orderType === "delivery"
-              ? `${order.deliveryDetails?.hostel}, Room ${order.deliveryDetails?.roomNumber}, Floor ${order.deliveryDetails?.floor}`
-              : `Table ${order.dineInDetails?.tableNumber}`,
-            order.deliveryBoy?.name || "Not Assigned",
-            order.items?.length || 0,
-            new Date(order.createdAt).toLocaleString(),
-          ]),
+          ...currentStats.recentOrders.map((order) => {
+            const orderDate = new Date(order.createdAt);
+            const dateOnly = orderDate.toLocaleDateString("en-IN", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            });
+            const timeOnly = orderDate.toLocaleTimeString("en-IN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
+            return [
+              order.orderId || order._id,
+              order.deliveryDetails
+                ? `${order.deliveryDetails.firstName} ${order.deliveryDetails.lastName}`
+                : `${order.dineInDetails?.firstName} ${order.dineInDetails?.lastName}`,
+              order.deliveryDetails?.phone || order.dineInDetails?.phone || "N/A",
+              order.orderType === "delivery" ? "Delivery" : "Dine-in",
+              order.status === "completed"
+                ? (order.orderType === "dinein" ? "Delivered" : "Out for Delivery")
+                : order.status.charAt(0).toUpperCase() + order.status.slice(1),
+              order.paymentStatus,
+              order.grandTotal,
+              order.orderType === "delivery"
+                ? `${order.deliveryDetails?.hostel}, Room ${order.deliveryDetails?.roomNumber}, Floor ${order.deliveryDetails?.floor}`
+                : `Table ${order.dineInDetails?.tableNumber}`,
+              order.deliveryBoy?.name || "Not Assigned",
+              order.items?.length || 0,
+              dateOnly,
+              timeOnly,
+            ];
+          }),
         ];
 
         const ordersSheet = XLSX.utils.aoa_to_sheet(ordersData);
@@ -199,7 +214,8 @@ const ReportsPage = () => {
           { wch: 30 }, // Address
           { wch: 20 }, // Delivery Boy
           { wch: 12 }, // Items Count
-          { wch: 20 }, // Date
+          { wch: 12 }, // Date
+          { wch: 10 }, // Time
         ];
         ordersSheet["!cols"] = wscols;
 
@@ -223,26 +239,41 @@ const ReportsPage = () => {
             "Room Number",
             "Floor",
             "Items Count",
-            "Date & Time",
+            "Date",
+            "Time",
           ],
-          ...currentStats.completedDeliveryOrders.map((order) => [
-            order.orderId || order._id,
-            order.deliveryDetails
-              ? `${order.deliveryDetails.firstName} ${order.deliveryDetails.lastName}`
-              : "N/A",
-            order.deliveryDetails?.phone || "N/A",
-            "Out for Delivery",
-            order.paymentStatus,
-            order.grandTotal,
-            order.deliveryCharges || 0,
-            order.deliveryBoy?.name || "Not Assigned",
-            order.deliveryBoy?.phone || "N/A",
-            order.deliveryDetails?.hostel || "N/A",
-            order.deliveryDetails?.roomNumber || "N/A",
-            order.deliveryDetails?.floor || "N/A",
-            order.items?.length || 0,
-            new Date(order.createdAt).toLocaleString(),
-          ]),
+          ...currentStats.completedDeliveryOrders.map((order) => {
+            const orderDate = new Date(order.createdAt);
+            const dateOnly = orderDate.toLocaleDateString("en-IN", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            });
+            const timeOnly = orderDate.toLocaleTimeString("en-IN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
+            return [
+              order.orderId || order._id,
+              order.deliveryDetails
+                ? `${order.deliveryDetails.firstName} ${order.deliveryDetails.lastName}`
+                : "N/A",
+              order.deliveryDetails?.phone || "N/A",
+              "Out for Delivery",
+              order.paymentStatus,
+              order.grandTotal,
+              order.deliveryCharges || 0,
+              order.deliveryBoy?.name || "Not Assigned",
+              order.deliveryBoy?.phone || "N/A",
+              order.deliveryDetails?.hostel || "N/A",
+              order.deliveryDetails?.roomNumber || "N/A",
+              order.deliveryDetails?.floor || "N/A",
+              order.items?.length || 0,
+              dateOnly,
+              timeOnly,
+            ];
+          }),
         ];
 
         const deliveryOrdersSheet = XLSX.utils.aoa_to_sheet(deliveryOrdersData);
@@ -262,7 +293,8 @@ const ReportsPage = () => {
           { wch: 12 }, // Room Number
           { wch: 10 }, // Floor
           { wch: 12 }, // Items Count
-          { wch: 20 }, // Date
+          { wch: 12 }, // Date
+          { wch: 10 }, // Time
         ];
         deliveryOrdersSheet["!cols"] = deliveryWscols;
 
@@ -285,21 +317,36 @@ const ReportsPage = () => {
             "Amount (₹)",
             "Table Number",
             "Items Count",
-            "Date & Time",
+            "Date",
+            "Time",
           ],
-          ...currentStats.completedDineInOrders.map((order) => [
-            order.orderId || order._id,
-            order.dineInDetails
-              ? `${order.dineInDetails.firstName} ${order.dineInDetails.lastName}`
-              : "N/A",
-            order.dineInDetails?.phone || "N/A",
-            "Delivered",
-            order.paymentStatus,
-            order.grandTotal,
-            order.dineInDetails?.tableNumber || "N/A",
-            order.items?.length || 0,
-            new Date(order.createdAt).toLocaleString(),
-          ]),
+          ...currentStats.completedDineInOrders.map((order) => {
+            const orderDate = new Date(order.createdAt);
+            const dateOnly = orderDate.toLocaleDateString("en-IN", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            });
+            const timeOnly = orderDate.toLocaleTimeString("en-IN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
+            return [
+              order.orderId || order._id,
+              order.dineInDetails
+                ? `${order.dineInDetails.firstName} ${order.dineInDetails.lastName}`
+                : "N/A",
+              order.dineInDetails?.phone || "N/A",
+              "Delivered",
+              order.paymentStatus,
+              order.grandTotal,
+              order.dineInDetails?.tableNumber || "N/A",
+              order.items?.length || 0,
+              dateOnly,
+              timeOnly,
+            ];
+          }),
         ];
 
         const dineInOrdersSheet = XLSX.utils.aoa_to_sheet(dineInOrdersData);
@@ -314,7 +361,8 @@ const ReportsPage = () => {
           { wch: 12 }, // Amount
           { wch: 12 }, // Table Number
           { wch: 12 }, // Items Count
-          { wch: 20 }, // Date
+          { wch: 12 }, // Date
+          { wch: 10 }, // Time
         ];
         dineInOrdersSheet["!cols"] = dineInWscols;
 
@@ -338,10 +386,15 @@ const ReportsPage = () => {
             "Order ID",
             "Order Type",
             "Customer Name",
+            "Customer Phone",
             "Item Name",
             "Quantity",
             "Unit Price",
             "Total Price",
+            "Delivery Boy Name",
+            "Delivery Boy Phone",
+            "Date",
+            "Time",
           ],
         ];
 
@@ -353,18 +406,39 @@ const ReportsPage = () => {
               ? `${order.dineInDetails.firstName} ${order.dineInDetails.lastName}`
               : "N/A";
 
+            const customerPhone = order.deliveryDetails?.phone || order.dineInDetails?.phone || "N/A";
+
             const orderType =
               order.orderType === "delivery" ? "Delivery" : "Dine-in";
+
+            const deliveryBoyName = order.deliveryBoy?.name || "Not Assigned";
+            const deliveryBoyPhone = order.deliveryBoy?.phone || "N/A";
+
+            const orderDate = new Date(order.createdAt);
+            const dateOnly = orderDate.toLocaleDateString("en-IN", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            });
+            const timeOnly = orderDate.toLocaleTimeString("en-IN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
 
             order.items.forEach((item) => {
               itemsData.push([
                 order.orderId || order._id,
                 orderType,
                 customerName,
+                customerPhone,
                 item.name,
                 item.quantity.toString(),
                 `₹${item.price}`,
                 `₹${item.quantity * item.price}`,
+                deliveryBoyName,
+                deliveryBoyPhone,
+                dateOnly,
+                timeOnly,
               ]);
             });
           }
@@ -377,10 +451,15 @@ const ReportsPage = () => {
             { wch: 15 }, // Order ID
             { wch: 12 }, // Order Type
             { wch: 20 }, // Customer Name
+            { wch: 15 }, // Customer Phone
             { wch: 25 }, // Item Name
             { wch: 10 }, // Quantity
             { wch: 12 }, // Unit Price
             { wch: 12 }, // Total Price
+            { wch: 20 }, // Delivery Boy Name
+            { wch: 15 }, // Delivery Boy Phone
+            { wch: 12 }, // Date
+            { wch: 10 }, // Time
           ];
           itemsSheet["!cols"] = itemsCols;
           XLSX.utils.book_append_sheet(wb, itemsSheet, "All Order Items");
@@ -411,7 +490,7 @@ const ReportsPage = () => {
 
   const getPeriodLabel = (period: string) => {
     switch (period) {
-      case "today":
+      case "daily":
         return "Today";
       case "weekly":
         return "This Week";
@@ -519,7 +598,7 @@ const ReportsPage = () => {
           {/* Main Period Buttons */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-1 bg-white p-1 rounded-lg border border-gray-200 w-fit">
-              {["today", "weekly", "monthly", "custom"].map((period) => (
+              {["daily", "weekly", "monthly", "custom"].map((period) => (
                 <button
                   key={period}
                   onClick={() => handlePeriodChange(period)}
@@ -537,7 +616,7 @@ const ReportsPage = () => {
             </div>
 
             {/* Clear Filter Button */}
-            {(selectedPeriod === "custom" || selectedPeriod !== "today") && (
+            {(selectedPeriod === "custom" || selectedPeriod !== "daily") && (
               <button
                 onClick={clearFilters}
                 className="flex items-center space-x-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
@@ -560,7 +639,7 @@ const ReportsPage = () => {
                     onClick={clearFilters}
                     className="text-xs text-gray-500 hover:text-gray-700 underline"
                   >
-                    Reset to Today
+                    Reset to Daily
                   </button>
                 </div>
                 <div className="flex items-center space-x-4">
