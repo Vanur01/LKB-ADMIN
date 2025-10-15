@@ -24,15 +24,24 @@ const ReportsPage = () => {
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("today");
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("daily");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  const fetchDashboard = async (period: string) => {
+  // Custom date range state
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const [isCustomDateValid, setIsCustomDateValid] = useState(false);
+
+  const fetchDashboard = async (
+    period: string,
+    customRange?: { startDate?: string; endDate?: string }
+  ) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await getOrderDashboard(period as any);
+      const res = await getOrderDashboard(period as any, customRange);
       setDashboard(res);
     } catch (err: any) {
       setError(err.message || "Failed to fetch dashboard report");
@@ -42,18 +51,70 @@ const ReportsPage = () => {
   };
 
   useEffect(() => {
-    fetchDashboard(selectedPeriod);
+    if (selectedPeriod === "custom") {
+      if (isCustomDateValid) {
+        fetchDashboard(selectedPeriod, { startDate, endDate });
+      }
+    } else {
+      fetchDashboard(selectedPeriod);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPeriod]);
+  }, [selectedPeriod, isCustomDateValid]);
 
   const currentStats = dashboard?.result;
 
   // Refresh orders data
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchDashboard(selectedPeriod);
+    if (selectedPeriod === "custom" && isCustomDateValid) {
+      await fetchDashboard(selectedPeriod, { startDate, endDate });
+    } else if (selectedPeriod !== "custom") {
+      await fetchDashboard(selectedPeriod);
+    }
     setLastRefresh(new Date());
     setIsRefreshing(false);
+  };
+
+  // Handle period change
+  const handlePeriodChange = (period: string) => {
+    setSelectedPeriod(period);
+    if (period === "custom") {
+      setShowDatePicker(true);
+    } else {
+      setShowDatePicker(false);
+      setStartDate("");
+      setEndDate("");
+      setIsCustomDateValid(false);
+    }
+  };
+
+  // Validate custom date range
+  useEffect(() => {
+    if (selectedPeriod === "custom") {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const isValid = Boolean(
+        startDate && endDate && start <= end && start <= new Date()
+      );
+      setIsCustomDateValid(isValid);
+    }
+  }, [startDate, endDate, selectedPeriod]);
+
+  // Apply custom date range
+  const applyCustomDateRange = () => {
+    if (isCustomDateValid) {
+      fetchDashboard("custom", { startDate, endDate });
+    }
+  };
+
+  // Clear filters and reset to daily
+  const clearFilters = () => {
+    setSelectedPeriod("daily");
+    setShowDatePicker(false);
+    setStartDate("");
+    setEndDate("");
+    setIsCustomDateValid(false);
+    fetchDashboard("daily");
   };
 
   const handleExport = () => {
@@ -72,8 +133,14 @@ const ReportsPage = () => {
         ["Total Orders", currentStats?.totalOrders ?? 0],
         ["Total Revenue", `₹${currentStats?.totalRevenue ?? 0}`],
         ["Average Order Value", `₹${currentStats?.avgOrderValue ?? 0}`],
-        ["Completed Delivery Orders", currentStats?.completedDeliveryOrdersCount ?? 0],
-        ["Completed Dine-in Orders", currentStats?.completedDineInOrdersCount ?? 0],
+        [
+          "Completed Delivery Orders",
+          currentStats?.completedDeliveryOrdersCount ?? 0,
+        ],
+        [
+          "Completed Dine-in Orders",
+          currentStats?.completedDineInOrdersCount ?? 0,
+        ],
         ["Report Period", getPeriodLabel(selectedPeriod)],
         ["Generated On", new Date().toLocaleString()],
       ];
@@ -95,25 +162,42 @@ const ReportsPage = () => {
             "Table/Address",
             "Delivery Boy",
             "Items Count",
-            "Date & Time",
+            "Date",
+            "Time",
           ],
-          ...currentStats.recentOrders.map((order) => [
-            order.orderId || order._id,
-            order.deliveryDetails
-              ? `${order.deliveryDetails.firstName} ${order.deliveryDetails.lastName}`
-              : `${order.dineInDetails?.firstName} ${order.dineInDetails?.lastName}`,
-            order.deliveryDetails?.phone || order.dineInDetails?.phone || "N/A",
-            order.orderType === "delivery" ? "Delivery" : "Dine-in",
-            order.status === "completed" ? (order.orderType === "dinein" ? "Delivered" : "Out for Delivery") : order.status.charAt(0).toUpperCase() + order.status.slice(1),
-            order.paymentStatus,
-            order.grandTotal,
-            order.orderType === "delivery"
-              ? `${order.deliveryDetails?.hostel}, Room ${order.deliveryDetails?.roomNumber}, Floor ${order.deliveryDetails?.floor}`
-              : `Table ${order.dineInDetails?.tableNumber}`,
-            order.deliveryBoy?.name || "Not Assigned",
-            order.items?.length || 0,
-            new Date(order.createdAt).toLocaleString(),
-          ]),
+          ...currentStats.recentOrders.map((order) => {
+            const orderDate = new Date(order.createdAt);
+            const dateOnly = orderDate.toLocaleDateString("en-IN", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            });
+            const timeOnly = orderDate.toLocaleTimeString("en-IN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
+            return [
+              order.orderId || order._id,
+              order.deliveryDetails
+                ? `${order.deliveryDetails.firstName} ${order.deliveryDetails.lastName}`
+                : `${order.dineInDetails?.firstName} ${order.dineInDetails?.lastName}`,
+              order.deliveryDetails?.phone || order.dineInDetails?.phone || "N/A",
+              order.orderType === "delivery" ? "Delivery" : "Dine-in",
+              order.status === "completed"
+                ? (order.orderType === "dinein" ? "Delivered" : "Out for Delivery")
+                : order.status.charAt(0).toUpperCase() + order.status.slice(1),
+              order.paymentStatus,
+              order.grandTotal,
+              order.orderType === "delivery"
+                ? `${order.deliveryDetails?.hostel}, Room ${order.deliveryDetails?.roomNumber}, Floor ${order.deliveryDetails?.floor}`
+                : `Table ${order.dineInDetails?.tableNumber}`,
+              order.deliveryBoy?.name || "Not Assigned",
+              order.items?.length || 0,
+              dateOnly,
+              timeOnly,
+            ];
+          }),
         ];
 
         const ordersSheet = XLSX.utils.aoa_to_sheet(ordersData);
@@ -130,7 +214,8 @@ const ReportsPage = () => {
           { wch: 30 }, // Address
           { wch: 20 }, // Delivery Boy
           { wch: 12 }, // Items Count
-          { wch: 20 }, // Date
+          { wch: 12 }, // Date
+          { wch: 10 }, // Time
         ];
         ordersSheet["!cols"] = wscols;
 
@@ -154,26 +239,41 @@ const ReportsPage = () => {
             "Room Number",
             "Floor",
             "Items Count",
-            "Date & Time",
+            "Date",
+            "Time",
           ],
-          ...currentStats.completedDeliveryOrders.map((order) => [
-            order.orderId || order._id,
-            order.deliveryDetails
-              ? `${order.deliveryDetails.firstName} ${order.deliveryDetails.lastName}`
-              : "N/A",
-            order.deliveryDetails?.phone || "N/A",
-            "Out for Delivery",
-            order.paymentStatus,
-            order.grandTotal,
-            order.deliveryCharges || 0,
-            order.deliveryBoy?.name || "Not Assigned",
-            order.deliveryBoy?.phone || "N/A",
-            order.deliveryDetails?.hostel || "N/A",
-            order.deliveryDetails?.roomNumber || "N/A",
-            order.deliveryDetails?.floor || "N/A",
-            order.items?.length || 0,
-            new Date(order.createdAt).toLocaleString(),
-          ]),
+          ...currentStats.completedDeliveryOrders.map((order) => {
+            const orderDate = new Date(order.createdAt);
+            const dateOnly = orderDate.toLocaleDateString("en-IN", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            });
+            const timeOnly = orderDate.toLocaleTimeString("en-IN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
+            return [
+              order.orderId || order._id,
+              order.deliveryDetails
+                ? `${order.deliveryDetails.firstName} ${order.deliveryDetails.lastName}`
+                : "N/A",
+              order.deliveryDetails?.phone || "N/A",
+              "Out for Delivery",
+              order.paymentStatus,
+              order.grandTotal,
+              order.deliveryCharges || 0,
+              order.deliveryBoy?.name || "Not Assigned",
+              order.deliveryBoy?.phone || "N/A",
+              order.deliveryDetails?.hostel || "N/A",
+              order.deliveryDetails?.roomNumber || "N/A",
+              order.deliveryDetails?.floor || "N/A",
+              order.items?.length || 0,
+              dateOnly,
+              timeOnly,
+            ];
+          }),
         ];
 
         const deliveryOrdersSheet = XLSX.utils.aoa_to_sheet(deliveryOrdersData);
@@ -193,11 +293,16 @@ const ReportsPage = () => {
           { wch: 12 }, // Room Number
           { wch: 10 }, // Floor
           { wch: 12 }, // Items Count
-          { wch: 20 }, // Date
+          { wch: 12 }, // Date
+          { wch: 10 }, // Time
         ];
         deliveryOrdersSheet["!cols"] = deliveryWscols;
 
-        XLSX.utils.book_append_sheet(wb, deliveryOrdersSheet, "Completed Delivery Orders");
+        XLSX.utils.book_append_sheet(
+          wb,
+          deliveryOrdersSheet,
+          "Completed Delivery Orders"
+        );
       }
 
       // Prepare Completed Dine-in Orders Sheet
@@ -212,21 +317,36 @@ const ReportsPage = () => {
             "Amount (₹)",
             "Table Number",
             "Items Count",
-            "Date & Time",
+            "Date",
+            "Time",
           ],
-          ...currentStats.completedDineInOrders.map((order) => [
-            order.orderId || order._id,
-            order.dineInDetails
-              ? `${order.dineInDetails.firstName} ${order.dineInDetails.lastName}`
-              : "N/A",
-            order.dineInDetails?.phone || "N/A",
-            "Delivered",
-            order.paymentStatus,
-            order.grandTotal,
-            order.dineInDetails?.tableNumber || "N/A",
-            order.items?.length || 0,
-            new Date(order.createdAt).toLocaleString(),
-          ]),
+          ...currentStats.completedDineInOrders.map((order) => {
+            const orderDate = new Date(order.createdAt);
+            const dateOnly = orderDate.toLocaleDateString("en-IN", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            });
+            const timeOnly = orderDate.toLocaleTimeString("en-IN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
+            return [
+              order.orderId || order._id,
+              order.dineInDetails
+                ? `${order.dineInDetails.firstName} ${order.dineInDetails.lastName}`
+                : "N/A",
+              order.dineInDetails?.phone || "N/A",
+              "Delivered",
+              order.paymentStatus,
+              order.grandTotal,
+              order.dineInDetails?.tableNumber || "N/A",
+              order.items?.length || 0,
+              dateOnly,
+              timeOnly,
+            ];
+          }),
         ];
 
         const dineInOrdersSheet = XLSX.utils.aoa_to_sheet(dineInOrdersData);
@@ -241,11 +361,16 @@ const ReportsPage = () => {
           { wch: 12 }, // Amount
           { wch: 12 }, // Table Number
           { wch: 12 }, // Items Count
-          { wch: 20 }, // Date
+          { wch: 12 }, // Date
+          { wch: 10 }, // Time
         ];
         dineInOrdersSheet["!cols"] = dineInWscols;
 
-        XLSX.utils.book_append_sheet(wb, dineInOrdersSheet, "Completed Dine-in Orders");
+        XLSX.utils.book_append_sheet(
+          wb,
+          dineInOrdersSheet,
+          "Completed Dine-in Orders"
+        );
       }
 
       // Add Order Items Details Sheet (if data exists and items are available)
@@ -257,7 +382,20 @@ const ReportsPage = () => {
 
       if (allOrdersWithItems.length > 0) {
         const itemsData = [
-          ["Order ID", "Order Type", "Customer Name", "Item Name", "Quantity", "Unit Price", "Total Price"],
+          [
+            "Order ID",
+            "Order Type",
+            "Customer Name",
+            "Customer Phone",
+            "Item Name",
+            "Quantity",
+            "Unit Price",
+            "Total Price",
+            "Delivery Boy Name",
+            "Delivery Boy Phone",
+            "Date",
+            "Time",
+          ],
         ];
 
         allOrdersWithItems.forEach((order) => {
@@ -267,18 +405,40 @@ const ReportsPage = () => {
               : order.dineInDetails
               ? `${order.dineInDetails.firstName} ${order.dineInDetails.lastName}`
               : "N/A";
-            
-            const orderType = order.orderType === "delivery" ? "Delivery" : "Dine-in";
-            
+
+            const customerPhone = order.deliveryDetails?.phone || order.dineInDetails?.phone || "N/A";
+
+            const orderType =
+              order.orderType === "delivery" ? "Delivery" : "Dine-in";
+
+            const deliveryBoyName = order.deliveryBoy?.name || "Not Assigned";
+            const deliveryBoyPhone = order.deliveryBoy?.phone || "N/A";
+
+            const orderDate = new Date(order.createdAt);
+            const dateOnly = orderDate.toLocaleDateString("en-IN", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            });
+            const timeOnly = orderDate.toLocaleTimeString("en-IN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+
             order.items.forEach((item) => {
               itemsData.push([
                 order.orderId || order._id,
                 orderType,
                 customerName,
+                customerPhone,
                 item.name,
                 item.quantity.toString(),
                 `₹${item.price}`,
                 `₹${item.quantity * item.price}`,
+                deliveryBoyName,
+                deliveryBoyPhone,
+                dateOnly,
+                timeOnly,
               ]);
             });
           }
@@ -291,10 +451,15 @@ const ReportsPage = () => {
             { wch: 15 }, // Order ID
             { wch: 12 }, // Order Type
             { wch: 20 }, // Customer Name
+            { wch: 15 }, // Customer Phone
             { wch: 25 }, // Item Name
             { wch: 10 }, // Quantity
             { wch: 12 }, // Unit Price
             { wch: 12 }, // Total Price
+            { wch: 20 }, // Delivery Boy Name
+            { wch: 15 }, // Delivery Boy Phone
+            { wch: 12 }, // Date
+            { wch: 10 }, // Time
           ];
           itemsSheet["!cols"] = itemsCols;
           XLSX.utils.book_append_sheet(wb, itemsSheet, "All Order Items");
@@ -325,12 +490,27 @@ const ReportsPage = () => {
 
   const getPeriodLabel = (period: string) => {
     switch (period) {
-      case "today":
+      case "daily":
         return "Today";
       case "weekly":
         return "This Week";
       case "monthly":
         return "This Month";
+      case "custom":
+        if (startDate && endDate) {
+          const start = new Date(startDate).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          });
+          const end = new Date(endDate).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          });
+          return `${start} - ${end}`;
+        }
+        return "Custom Range";
       default:
         return "Today";
     }
@@ -414,20 +594,112 @@ const ReportsPage = () => {
 
       {/* Period Selector */}
       <div className="mb-6">
-        <div className="flex items-center space-x-1 bg-white p-1 rounded-lg border border-gray-200 w-fit">
-          {["today"].map((period) => (
-            <button
-              key={period}
-              onClick={() => setSelectedPeriod(period)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                selectedPeriod === period
-                  ? "bg-orange-600 text-white border-2 border-orange-700"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-              }`}
-            >
-              {getPeriodLabel(period)}
-            </button>
-          ))}
+        <div className="flex flex-col space-y-4">
+          {/* Main Period Buttons */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-1 bg-white p-1 rounded-lg border border-gray-200 w-fit">
+              {["daily"].map((period) => (
+                <button
+                  key={period}
+                  onClick={() => handlePeriodChange(period)}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    selectedPeriod === period
+                      ? "bg-orange-600 text-white border-2 border-orange-700"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  }`}
+                >
+                  {period === "custom"
+                    ? "Custom Range"
+                    : getPeriodLabel(period)}
+                </button>
+              ))}
+            </div>
+
+            {/* Clear Filter Button */}
+            {(selectedPeriod === "custom" || selectedPeriod !== "daily") && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center space-x-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                <XCircleIcon className="h-4 w-4" />
+                <span>Clear Filters</span>
+              </button>
+            )}
+          </div>
+
+          {/* Custom Date Range Picker */}
+          {showDatePicker && selectedPeriod === "custom" && (
+            <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+              <div className="flex flex-col space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-gray-900">
+                    Select Date Range
+                  </h3>
+                  <button
+                    onClick={clearFilters}
+                    className="text-xs text-gray-500 hover:text-gray-700 underline"
+                  >
+                    Reset to Daily
+                  </button>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="flex flex-col">
+                    <label className="text-xs text-gray-500 mb-1">
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      max={new Date().toISOString().split("T")[0]}
+                      className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <label className="text-xs text-gray-500 mb-1">
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      min={startDate}
+                      max={new Date().toISOString().split("T")[0]}
+                      className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    />
+                  </div>
+                  <div className="flex items-end space-x-2">
+                    <button
+                      onClick={applyCustomDateRange}
+                      disabled={!isCustomDateValid}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                        isCustomDateValid
+                          ? "bg-orange-600 text-white hover:bg-orange-700"
+                          : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      }`}
+                    >
+                      Apply
+                    </button>
+                    <button
+                      onClick={() => {
+                        setStartDate("");
+                        setEndDate("");
+                      }}
+                      className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-md text-sm font-medium transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+                {!isCustomDateValid && (startDate || endDate) && (
+                  <p className="text-xs text-red-500">
+                    Please select valid start and end dates. End date should be
+                    after start date and not in the future.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -481,7 +753,9 @@ const ReportsPage = () => {
         <div className="bg-white rounded-xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm font-medium">Avg Order Value</p>
+              <p className="text-gray-600 text-sm font-medium">
+                Avg Order Value
+              </p>
               <p className="text-3xl font-bold text-gray-900 mt-1">
                 {loading
                   ? "..."
@@ -504,14 +778,20 @@ const ReportsPage = () => {
         <div className="bg-white rounded-xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm font-medium">Completed Delivery Orders</p>
+              <p className="text-gray-600 text-sm font-medium">
+                Completed Delivery Orders
+              </p>
               <p className="text-3xl font-bold text-gray-900 mt-1">
-                {loading ? "..." : (currentStats?.completedDeliveryOrdersCount ?? 0) + (currentStats?.completedDineInOrdersCount ?? 0)}
+                {loading
+                  ? "..."
+                  : (currentStats?.completedDeliveryOrdersCount ?? 0) +
+                    (currentStats?.completedDineInOrdersCount ?? 0)}
               </p>
               <div className="flex items-center mt-2">
                 <CheckCircleIcon className="h-4 w-4 text-green-500 mr-1" />
                 <span className="text-sm font-medium text-green-600">
-                  Delivery: {currentStats?.completedDeliveryOrdersCount ?? 0}, Dine-in: {currentStats?.completedDineInOrdersCount ?? 0}
+                  Delivery: {currentStats?.completedDeliveryOrdersCount ?? 0},
+                  Dine-in: {currentStats?.completedDineInOrdersCount ?? 0}
                 </span>
               </div>
             </div>
@@ -525,9 +805,13 @@ const ReportsPage = () => {
         <div className="bg-white rounded-xl border-2 border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm font-medium">Completed Dine-in Orders</p>
+              <p className="text-gray-600 text-sm font-medium">
+                Completed Dine-in Orders
+              </p>
               <p className="text-3xl font-bold text-gray-900 mt-1">
-                {loading ? "..." : currentStats?.completedDineInOrdersCount ?? 0}
+                {loading
+                  ? "..."
+                  : currentStats?.completedDineInOrdersCount ?? 0}
               </p>
               <div className="flex items-center mt-2">
                 <CheckCircleIcon className="h-4 w-4 text-orange-500 mr-1" />
@@ -541,7 +825,6 @@ const ReportsPage = () => {
             </div>
           </div>
         </div>
-
       </div>
 
       {/* Recent Orders Table (API) */}
@@ -630,17 +913,22 @@ const ReportsPage = () => {
                             : `${order.dineInDetails?.firstName} ${order.dineInDetails?.lastName}`}
                         </div>
                         <div className="text-gray-500">
-                          {order.deliveryDetails?.phone || order.dineInDetails?.phone}
+                          {order.deliveryDetails?.phone ||
+                            order.dineInDetails?.phone}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        order.orderType === "delivery" 
-                          ? "bg-blue-100 text-blue-800" 
-                          : "bg-purple-100 text-purple-800"
-                      }`}>
-                        {order.orderType === "delivery" ? "Delivery" : "Dine-in"}
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                          order.orderType === "delivery"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-purple-100 text-purple-800"
+                        }`}
+                      >
+                        {order.orderType === "delivery"
+                          ? "Delivery"
+                          : "Dine-in"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -659,14 +947,17 @@ const ReportsPage = () => {
                       >
                         {order.status === "completed"
                           ? (order.orderType === "dinein" ? "Delivered" : "Out for Delivery")
-                          : order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                          : order.status.charAt(0).toUpperCase() +
+                            order.status.slice(1)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         {getPaymentStatusIcon(order.paymentStatus)}
                         <span
-                          className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(order.paymentStatus)}`}
+                          className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(
+                            order.paymentStatus
+                          )}`}
                         >
                           {order.paymentStatus}
                         </span>
@@ -683,7 +974,9 @@ const ReportsPage = () => {
                           </div>
                         </div>
                       ) : (
-                        <span className="text-gray-400 text-sm">Not Assigned</span>
+                        <span className="text-gray-400 text-sm">
+                          Not Assigned
+                        </span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -699,12 +992,12 @@ const ReportsPage = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
+                      {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </td>
                   </tr>
@@ -720,9 +1013,12 @@ const ReportsPage = () => {
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Completed Delivery Orders</h2>
+              <h2 className="text-xl font-bold text-gray-900">
+                Completed Delivery Orders
+              </h2>
               <p className="text-gray-600 mt-1">
-                All completed delivery orders for {getPeriodLabel(selectedPeriod).toLowerCase()}
+                All completed delivery orders for{" "}
+                {getPeriodLabel(selectedPeriod).toLowerCase()}
               </p>
             </div>
             <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -763,19 +1059,28 @@ const ReportsPage = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-gray-400">
+                  <td
+                    colSpan={8}
+                    className="px-6 py-4 text-center text-gray-400"
+                  >
                     Loading...
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-red-400">
+                  <td
+                    colSpan={8}
+                    className="px-6 py-4 text-center text-red-400"
+                  >
                     {error}
                   </td>
                 </tr>
               ) : !currentStats?.completedDeliveryOrders?.length ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-gray-400">
+                  <td
+                    colSpan={8}
+                    className="px-6 py-4 text-center text-gray-400"
+                  >
                     No completed delivery orders
                   </td>
                 </tr>
@@ -808,7 +1113,9 @@ const ReportsPage = () => {
                       <div className="flex items-center">
                         {getPaymentStatusIcon(order.paymentStatus)}
                         <span
-                          className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(order.paymentStatus)}`}
+                          className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(
+                            order.paymentStatus
+                          )}`}
                         >
                           {order.paymentStatus}
                         </span>
@@ -825,7 +1132,9 @@ const ReportsPage = () => {
                           </div>
                         </div>
                       ) : (
-                        <span className="text-gray-400 text-sm">Not Assigned</span>
+                        <span className="text-gray-400 text-sm">
+                          Not Assigned
+                        </span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -843,9 +1152,12 @@ const ReportsPage = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {order.deliveryDetails ? (
                         <div>
-                          <div className="font-medium">{order.deliveryDetails.hostel}</div>
+                          <div className="font-medium">
+                            {order.deliveryDetails.hostel}
+                          </div>
                           <div className="text-xs">
-                            Room {order.deliveryDetails.roomNumber}, Floor {order.deliveryDetails.floor}
+                            Room {order.deliveryDetails.roomNumber}, Floor{" "}
+                            {order.deliveryDetails.floor}
                           </div>
                         </div>
                       ) : (
@@ -853,12 +1165,12 @@ const ReportsPage = () => {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
+                      {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </td>
                   </tr>
@@ -874,9 +1186,12 @@ const ReportsPage = () => {
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Completed Dine-in Orders</h2>
+              <h2 className="text-xl font-bold text-gray-900">
+                Completed Dine-in Orders
+              </h2>
               <p className="text-gray-600 mt-1">
-                All completed dine-in orders for {getPeriodLabel(selectedPeriod).toLowerCase()}
+                All completed dine-in orders for{" "}
+                {getPeriodLabel(selectedPeriod).toLowerCase()}
               </p>
             </div>
             <div className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -917,19 +1232,28 @@ const ReportsPage = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-gray-400">
+                  <td
+                    colSpan={8}
+                    className="px-6 py-4 text-center text-gray-400"
+                  >
                     Loading...
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-red-400">
+                  <td
+                    colSpan={8}
+                    className="px-6 py-4 text-center text-red-400"
+                  >
                     {error}
                   </td>
                 </tr>
               ) : !currentStats?.completedDineInOrders?.length ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-gray-400">
+                  <td
+                    colSpan={8}
+                    className="px-6 py-4 text-center text-gray-400"
+                  >
                     No completed dine-in orders
                   </td>
                 </tr>
@@ -962,7 +1286,9 @@ const ReportsPage = () => {
                       <div className="flex items-center">
                         {getPaymentStatusIcon(order.paymentStatus)}
                         <span
-                          className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(order.paymentStatus)}`}
+                          className={`ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(
+                            order.paymentStatus
+                          )}`}
                         >
                           {order.paymentStatus}
                         </span>
@@ -984,12 +1310,12 @@ const ReportsPage = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
+                      {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </td>
                   </tr>
